@@ -12,6 +12,9 @@ library(DT)
 library(dplyr)
 library(ggplot2)
 library(ggpubr) # for the stat_compare_means
+library(slingshot)
+library(viridis)
+library(destiny) # for the diffusionmap
 
 options(bitmapType = "cairo") # specific for the HPC to make plots
 
@@ -27,14 +30,34 @@ DEGenes <- readRDS("/kyukon/data/gent/vo/000/gvo00027/PPOL/SharedData/2024_TimBr
 #######################################
 ## variables to use in the interface ##
 #######################################
-# getting only the RNA data for the assays
+## getting only the RNA data for the assays
 DefaultAssay(cell) <- "RNA"
 #DefaultAssay(ALK) <- "RNA"
 
-# features for the genes to chose from
+## features for the genes to chose from
 WT_features <- rownames(cell)
 ALK_features <- rownames(ALK)
 allfeatures <- c(WT_features, ALK_features)
+
+## preparation of the pseudotime analysis
+# make a matrix
+sce1 <- as.SingleCellExperiment(cell)
+# Dim 18
+dm_S <- DiffusionMap(Embeddings(cell, "pca")[,1:18])
+cellLabels <- sce1$CellType
+tmp <- data.frame(DC1 = eigenvectors(dm_S)[, 1],
+                  DC2 = eigenvectors(dm_S)[, 2],
+                  DC3 = eigenvectors(dm_S)[, 3],
+                  DC4 = eigenvectors(dm_S)[, 4],
+                  Samples = cellLabels)
+dimentions_DC <- cbind(dm_S$DC1, dm_S$DC2)
+colnames(dimentions_DC) <- c("DM_1", "DM_2")
+cell[["DC"]] <- CreateDimReducObject(embeddings = dimentions_DC, key = "DC_", assay = DefaultAssay(cell))
+# slingshot function with DC as reduction 
+# start from SingleCellExperiment matrix  
+sce <- as.SingleCellExperiment(cell)
+sce_slingshot <- slingshot(sce, clusterLabels = "CellType", reducedDim = "DC")
+
 
 ###############
 ## Define UI ##
@@ -64,7 +87,7 @@ ui <- dashboardPage(
                 ),
                 # Second menuItem
                 menuItem("DE Genes", tabName = "diff_gene"),
-                # .... to differentiate gene analys, now as example filled in with selectinput
+                # radiobuttions to select the datatable from the celltype
                 conditionalPanel("input.sidebarid == 'diff_gene'",
                                  radioButtons(inputId = "selected_var",
                                    label = "Select variables:",
@@ -75,7 +98,14 @@ ui <- dashboardPage(
                 # third menuItem
                 menuItem("Signature Score", tabName = "score"),
                 # fourth menuItem
-                menuItem("Pseudotime analyse", tabName = "pseudo")
+                menuItem("Pseudotime analyse", tabName = "pseudo"),
+                conditionalPanel("input.sidebarid == 'pseudo'",
+                  selectInput(
+                    inputId = "pseudogene",
+                    label = "Choose a gene:",
+                    choices = allfeatures
+                  )
+                )
     )
   ),
   # Output in the body
@@ -88,7 +118,7 @@ ui <- dashboardPage(
           # Output tab for WT_Data
           tabPanel(title = "WT", 
                    plotOutput("WT_diffplots", height = 500, width = 1250),# outputting the plots
-                   plotOutput("violin2", width = 1250),
+                   plotOutput("WT_violin2", width = 1250),
                    verbatimTextOutput("statistics")), # outputting statistics for only the violinplot
           # Output tab for ALK_Data
           tabPanel(title = "ALK", 
@@ -107,7 +137,13 @@ ui <- dashboardPage(
       # output for third menu: signature score
       tabItem(tabName = "score"),
       # output for fourth menu: pseudotime analyse
-      tabItem(tabName = "pseudo")
+      tabItem(tabName = "pseudo",
+              navset_pill(
+                tabPanel(title = "WT",
+                         plotOutput("WT_dimplot"),
+                         plotOutput("WT_pseudoplots")),
+                tabPanel(title = "ALK")
+              ))
     )
   )
 )
@@ -132,10 +168,10 @@ server <- function(input, output, session) {
   # giving gene choices only when ViolinPlot or UMAP_GeneExpression is chosen as input
   output$genes <- renderUI({
     if (input$plot == "ViolinPlot" || input$plot == "UMAP_GeneExpression") {
-      selectInput(
+      selectizeInput(
         inputId = "gene",
         label = "Choose a gene:",
-        choices = allfeatures,
+        choices = allfeatures
       )
     }
   })
@@ -169,7 +205,7 @@ server <- function(input, output, session) {
   })
   
   
-  ################################################################################
+  ##############################################################################
   # WT_Data output
   ################
   # Make the plot based on the selected plot type
@@ -191,11 +227,12 @@ server <- function(input, output, session) {
   })
   
   # violin2 output plot for statistics
-  output$violin2 <- renderPlot({
+  output$WT_violin2 <- renderPlot({
     if (input$plot == "ViolinPlot") {
     VlnPlot(object = cell, 
             features = input$gene, pt.size=0, 
-            cols = c("dodgerblue2", "chartreuse3", "indianred3", "darkorange", "mediumorchid"))+
+            #cols = c("dodgerblue2", "chartreuse3", "indianred3", "darkorange", "mediumorchid")
+            )+
       #coord_flip()+ 
       theme_classic()+ 
       theme(axis.text.x = element_text(angle = 45, 
@@ -211,10 +248,11 @@ server <- function(input, output, session) {
             legend.position="none",
             axis.title.x = element_blank(),
             axis.title.y = element_blank()) + 
-      ylim(-0.2,0.5) +
+      # This is for the statistic line
       stat_compare_means(comparisons = list(c(input$comparison1, c(input$comparison2))),label = "p.signif",
-                         label.y = c(0.2, 0.25, 0.3, 0.35))  + 
-      stat_compare_means(label.y = 0.4) 
+                         label.y = 1)  + 
+      # place for the statistic calculation output
+      stat_compare_means(label.y = 1.5) 
     }
   })
 
@@ -229,8 +267,29 @@ server <- function(input, output, session) {
     )
   })
   
+  # output dimplot for the pseudotime analysis
+  output$WT_dimplot <- renderPlot({
+    DimPlot(cell, reduction = "DC")
+  })
   
-  ################################################################################
+  # output pseudoplots
+  output$WT_pseudoplots <- renderPlot({
+    # making the pseudotimeplot from SCP to Sympathoblasts
+    qplot(sce_slingshot$slingPseudotime_1, as.numeric(cell@assays$RNA@data[input$pseudogene,]), 
+          color = sce_slingshot$CellType, ylab = paste("Expression of", input$pseudogene, sep = " "), xlab = "Pseudotime") + 
+      theme_bw() + 
+      geom_smooth(aes(group = 1), se = FALSE, method = "loess", color = "gray") +
+      
+    # Making the pseudotimeplot from SCP to ProlifSympathoblasts
+    qplot(sce_slingshot$slingPseudotime_2, as.numeric(cell@assays$RNA@data[input$pseudogene,]), 
+          color = sce_slingshot$CellType, ylab = paste("Expression of", input$pseudogene, sep = " "), xlab = "Pseudotime") + 
+    theme_bw() + 
+    geom_smooth(aes(group = 1), se = FALSE, method = "loess", color = "gray") +
+    theme(legend.position = "none")
+  })
+  
+  
+  ##############################################################################
   # ALK_Data output
   #################
   output$ALK_diffplots <- renderPlot({
