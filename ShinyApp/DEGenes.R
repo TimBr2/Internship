@@ -13,8 +13,8 @@ cell <- readRDS("/kyukon/data/gent/vo/000/gvo00027/PPOL/SharedData/2024_TimBrugg
 ALK <- readRDS("/kyukon/data/gent/vo/000/gvo00027/PPOL/SharedData/2024_TimBruggeman/RDSObjects/stef_ALK_and_noALK_integrated_SLB.rds")
 
 
-## diff gene analyse ##
-#######################
+## WT diff gene analyse ##
+##########################
 Idents(cell) <- "CellType"
 
 DimPlot(cell, reduction = "umap", label = TRUE)
@@ -31,3 +31,19 @@ for (group in comparison_groups) {
   all_results[[group]] <- result
 }
 saveRDS(all_results, file = "DEGenes.RDS")
+
+## ALK diff gene analyse ##
+###########################
+Idents(ALK) <- c("ALK","SC")
+DimPlot(ALK, reduction = "umap", label = TRUE)
+UMAPPlot(ALK, group.by = "Celltype")
+
+comparison_groups <- c("ALK", "SC")
+all_ALK_results <- list()
+
+# Loop through each comparison group and perform FindMarkers
+for (group in comparison_groups) {
+  result <- FindMarkers(ALK, ident.1 = group)
+  all_ALK_results[[group]] <- result
+}
+saveRDS(all_ALK_results, file = "DEGenes_ALK.RDS")
