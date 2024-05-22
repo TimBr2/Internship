@@ -52,7 +52,7 @@ DEGenes <- readRDS("/kyukon/data/gent/vo/000/gvo00027/PPOL/SharedData/2024_TimBr
 ## variables to use in the interface ##
 #######################################
 ## getting only the RNA data for the assays
-#DefaultAssay(cell) <- "RNA"
+DefaultAssay(cell) <- "RNA"
 #DefaultAssay(ALK) <- "RNA"
 
 ## features for the genes to chose from
@@ -137,13 +137,17 @@ ui <- dashboardPage(
             id = "gene_exp_tabs",
             # Output tab for WT_Data
             tabPanel(value = "gene_exp_WT",
-                     title = "WT", 
+                     title = "WT",
+                     tags$br(),
+                     uiOutput("WT_plottext"),
                      plotOutput("WT_diffplots", height = 500) # outputting the plots
                      #verbatimTextOutput("statistics")
             ), # outputting statistics for only the violinplot
             # Output tab for ALK_Data
             tabPanel(value = "gene_exp_ALK",
-                     title = "ALK", 
+                     title = "ALK",
+                     uiOutput("ALK_plottext"),
+                     tags$br(),
                      plotOutput("ALK_diffplots", height = 500))
           )
         )
@@ -152,16 +156,22 @@ ui <- dashboardPage(
       tabItem(
         tabName = "diff_gene",
             tabPanel(title = "WT",
+                     textOutput("Datatable_text"),
+                     tags$br(),
                      DT::dataTableOutput("DEGenes_table"))
       ),
       # output for third menu: signature score
       tabItem(tabName = "score",
               tabPanel(title = "WT",
+                       textOutput("signature_text"),
+                       tags$br(),
                        plotOutput("signature_plot", height = 500, width = 800)
               )),
       # output for fourth menu: pseudotime analyse
       tabItem(tabName = "pseudo",
               tabPanel(title = "WT",
+                       textOutput("pseudo_text"),
+                       tags$br(),
                        plotOutput("WT_dimplot"),
                        plotOutput("WT_pseudoplots"))
       )
@@ -217,7 +227,6 @@ server <- function(input, output, session) {
     }
   })
   
-  
   # giving choices to get a comparison of two celltypes
   output$statistic_choice <- renderUI({
     if (input$plot == "ViolinPlot") {
@@ -250,11 +259,17 @@ server <- function(input, output, session) {
   ##############################################################################
   # WT_Data output
   ################
+  # making a text box above the plots from the first tab for WT
+  output$WT_plottext <- renderUI({
+    text <- switch(input$plot,
+                   "UMAP_Cluster" = "UMAP Cluster Plot for WT Data",
+                   "UMAP_GeneExpression" = "UMAP Gene Expression Plot for WT Data",
+                   "ViolinPlot" = "Violin Plot for WT Data")
+    text
+  })
+  
   # Make the plot based on the selected plot type
   output$WT_diffplots <- renderPlot({
-    # fix the error: "all cells have the same value(0) of the selected gene
-    
-    
     # give the UMAP_cluster plot
     if (input$plot == "UMAP_Cluster") {
       UMAPPlot(cell, group.by = "CellType")
@@ -298,6 +313,10 @@ server <- function(input, output, session) {
     }
   })
   
+  # making a textbox above the datatable
+  output$Datatable_text <- renderText({
+    paste("This is a datatable where you can find the genes per WT-celltype. In this table you can also find calculations from the genes.")
+  })
   
   # The WT_Data table from the DEGenes.RDS
   output$DEGenes_table <- DT::renderDT({
@@ -309,6 +328,10 @@ server <- function(input, output, session) {
     )
   })
   
+  # making text for the signatureplot tab
+  output$signature_text <- renderText({
+    paste("In this tab a list of genes can be inputted, this list will be calculated and a featureplot will be given")
+  })
   
   # making the signature tab output
   observeEvent(input$file, {
@@ -368,6 +391,9 @@ server <- function(input, output, session) {
     })
   })
   
+  output$pseudo_text <- renderText({
+    paste("This tab gives the pseudotime analysis for the WT")
+  })
   
   # output dimplot for the pseudotime analysis
   output$WT_dimplot <- renderPlot({
@@ -382,7 +408,7 @@ server <- function(input, output, session) {
                      color = sce_slingshot$CellType, ylab = paste("Expression of", input$pseudogene, sep = " "), xlab = "Pseudotime") + 
       theme_bw() + 
       geom_smooth(aes(group = 1), se = FALSE, method = "loess", color = "gray") +
-      theme(legend.position = "none")
+      theme(legend.position = "none") +
       ggtitle("From SCP to Sympathoblasts")
 
     # Making the pseudotimeplot from SCP to ProlifSympathoblasts
@@ -390,7 +416,7 @@ server <- function(input, output, session) {
                      color = sce_slingshot$CellType, ylab = paste("Expression of", input$pseudogene, sep = " "), xlab = "Pseudotime") + 
       theme_bw() + 
       geom_smooth(aes(group = 1), se = FALSE, method = "loess", color = "gray") +
-      theme(legend.position = "none")
+      theme(legend.position = "none") +
       ggtitle("From SCP to ProlifSympathoblasts") 
     
     # outputting the two pseudotimeplots
@@ -401,6 +427,15 @@ server <- function(input, output, session) {
   ##############################################################################
   # ALK_Data output
   #################
+  # making a textbox above the plots from the first tab of ALK
+  output$ALK_plottext <- renderUI({
+    text <- switch(input$plot,
+                   "UMAP_Cluster" = "UMAP Cluster Plot for ALK Data",
+                   "UMAP_GeneExpression" = "UMAP Gene Expression Plot for ALK Data",
+                   "ViolinPlot" = "Violin Plot for ALK Data")
+    text
+  })
+  
   output$ALK_diffplots <- renderPlot({
     # give the UMAP_cluster plot
     if (input$plot == "UMAP_Cluster") {
