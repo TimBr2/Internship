@@ -69,12 +69,19 @@ source("Pseudotime_Calculations.R", local = TRUE)
 ui <- dashboardPage(
   # headerbar
   dashboardHeader(title = 'ShinyApp',
+                  # add icon with paper link
+                  tags$li(class ="dropdown",
+                          tags$a(href = "https://www.sciencedirect.com/science/article/pii/S2589004223021739",
+                                 icon("file"),
+                                 "Paper"
+                                )
+                          ),
                   # Add icon with email link
                   tags$li(class = "dropdown",
                           tags$a(href = "mailto:sarahlee.bekaert@ugent.be",
                                  icon("envelope"),
                                  "Contact")
-                  ),
+                          ),
                   # making the logo
                   tags$li(class="dropdown", imageOutput("logo", height = 50, width = 50))
 
@@ -113,7 +120,8 @@ ui <- dashboardPage(
                                  fileInput("file", "Upload text file",
                                            accept = c(".txt")),
                                  textInput("genes", "Enter gene names (separated by comma)"),
-                                 actionButton("calculate", "Calculate Signature Score")
+                                 actionButton("calculate", "Calculate Signature Score"),
+                                 textInput("header", "Enter you header here:")
                 ),
                 # fourth menuItem
                 menuItem("Pseudotime analyse", tabName = "pseudo"),
@@ -146,8 +154,8 @@ ui <- dashboardPage(
             # Output tab for ALK_Data
             tabPanel(value = "gene_exp_ALK",
                      title = "ALK",
-                     uiOutput("ALK_plottext"),
                      tags$br(),
+                     uiOutput("ALK_plottext"),
                      plotOutput("ALK_diffplots", height = 500))
           )
         )
@@ -163,14 +171,14 @@ ui <- dashboardPage(
       # output for third menu: signature score
       tabItem(tabName = "score",
               tabPanel(title = "WT",
-                       textOutput("signature_text"),
+                       htmlOutput("signature_text"),
                        tags$br(),
                        plotOutput("signature_plot", height = 500, width = 800)
               )),
       # output for fourth menu: pseudotime analyse
       tabItem(tabName = "pseudo",
               tabPanel(title = "WT",
-                       textOutput("pseudo_text"),
+                       htmlOutput("pseudo_text"),
                        tags$br(),
                        plotOutput("WT_dimplot"),
                        plotOutput("WT_pseudoplots"))
@@ -227,9 +235,10 @@ server <- function(input, output, session) {
     }
   })
   
-  # giving choices to get a comparison of two celltypes
+  # giving choices to get a comparison of two celltypes for WT
   output$statistic_choice <- renderUI({
     if (input$plot == "ViolinPlot") {
+      if (input$gene_exp_tabs == "gene_exp_WT") {
       tags$div( # put in div to get both selectinputs in here
         tags$div(
           HTML("Options for statistics:"),
@@ -252,6 +261,7 @@ server <- function(input, output, session) {
           selected = "Sympathoblasts"
         )
       )
+      }
     }
   })
   
@@ -262,9 +272,12 @@ server <- function(input, output, session) {
   # making a text box above the plots from the first tab for WT
   output$WT_plottext <- renderUI({
     text <- switch(input$plot,
-                   "UMAP_Cluster" = "UMAP Cluster Plot for WT Data",
-                   "UMAP_GeneExpression" = "UMAP Gene Expression Plot for WT Data",
-                   "ViolinPlot" = "Violin Plot for WT Data")
+                   "UMAP_Cluster" = paste("UMAP showing the different populations of interest"),
+                   "UMAP_GeneExpression" = paste("UMAP showing the expression of a gene in the populations of interest"),
+                   "ViolinPlot" = HTML(
+                     "ViolinPlot: Violin plot showing the expression of a gene in the different populations of interest<br>",
+                     "Statistics is based on the t test"
+                   ))
     text
   })
   
@@ -315,7 +328,7 @@ server <- function(input, output, session) {
   
   # making a textbox above the datatable
   output$Datatable_text <- renderText({
-    paste("This is a datatable where you can find the genes per WT-celltype. In this table you can also find calculations from the genes.")
+    paste("List of differential expressed genes in the selected population vs all other populations")
   })
   
   # The WT_Data table from the DEGenes.RDS
@@ -330,48 +343,49 @@ server <- function(input, output, session) {
   
   # making text for the signatureplot tab
   output$signature_text <- renderText({
-    paste("In this tab a list of genes can be inputted, this list will be calculated and a featureplot will be given")
+    paste("UMAP showing the signature score of the gene set in the populations of interest", 
+          "Signature Score calculations are based on the UCell method and enrichIt function, it shows the combined expression of all genes in the gene set",
+          sep = "<br>")
   })
   
-  # making the signature tab output
-  observeEvent(input$file, {
-    # Check if file is uploaded
-    req(input$file$datapath)
-    # Check file extension
+  # Reactive expression to read and process the uploaded file
+  genes_from_file <- reactive({
+    req(input$file)
     file_ext <- tools::file_ext(input$file$name)
     if (file_ext != "txt") {
       showNotification("Please upload a text file with .txt extension", type = "warning")
       return(NULL)
     }
-  })
-  observeEvent(input$calculate, {
-    # Check if genes are provided
-    if (input$genes == "" && is.null(input$file)) {
-      showNotification("Please enter gene names or upload a text file", type = "warning")
+    df <- read.table(input$file$datapath, header = TRUE)
+    gene_column <- which(!is.na(df[[1]]))  # Assuming gene names are in the first column
+    if (length(gene_column) == 0) {
+      showNotification("The uploaded file does not contain gene names", type = "warning")
       return(NULL)
     }
-    # Extract genes
-    if (!is.null(input$file)) {
-      df <- read.table(input$file$datapath, header = TRUE)  # Read the entire file
-      gene_column <- which(!is.na(df))  # Find non-NA column (assuming gene names are in the first column)
-      if (length(gene_column) == 0) {
-        showNotification("The uploaded file does not contain gene names", type = "warning")
-        return(NULL)
-      }
-      genes <- trimws(df[[1]])  # Trim leading and trailing whitespace --> otherwise gets " CD24" instead of "CD24"
-    } else {
+    trimws(df[[1]])  # Trim leading and trailing whitespace
+  })
+  
+  observeEvent(input$calculate, {
+    # Check if genes are provided either by text input or file upload
+    genes <- NULL
+    if (input$genes != "") {
       genes <- strsplit(input$genes, ",")[[1]]
       genes <- trimws(genes)  # Trim leading and trailing whitespace
+    } else if (!is.null(input$file)) {
+      genes <- genes_from_file()
     }
     
-    # Check if genes are provided
-    if (length(genes) == 0) {
+    # Check if genes are found
+    if (is.null(genes) || length(genes) == 0) {
       showNotification("No genes found", type = "warning")
       return(NULL)
     }
     
     # Define signatures
     signatures <- list(user_genes = genes)
+    
+    # Get header input
+    header <- input$header
     
     # Show notification for signature score calculation
     showNotification("Signature Score being calculated, please be patient")
@@ -387,12 +401,18 @@ server <- function(input, output, session) {
     
     # Feature plot
     output$signature_plot <- renderPlot({
-      FeaturePlot(cell, features = "user_genes") ########## to do: asking for header and putting that header on it then............
+      featureplot <- FeaturePlot(cell, features = "user_genes")
+      featureplot + labs(title = header)
     })
   })
   
+  # making information text for the pseudoanalysis tab
   output$pseudo_text <- renderText({
-    paste("This tab gives the pseudotime analysis for the WT")
+      paste(
+        "Diffusion plot showing the differentiating cells colored and annotated by cell population",
+        "Plot showing the expression of a gene along the lineage trajectory in the diffusion plot, annotated for the populations of interest",
+        sep = "<br>"
+      )
   })
   
   # output dimplot for the pseudotime analysis
@@ -430,9 +450,12 @@ server <- function(input, output, session) {
   # making a textbox above the plots from the first tab of ALK
   output$ALK_plottext <- renderUI({
     text <- switch(input$plot,
-                   "UMAP_Cluster" = "UMAP Cluster Plot for ALK Data",
-                   "UMAP_GeneExpression" = "UMAP Gene Expression Plot for ALK Data",
-                   "ViolinPlot" = "Violin Plot for ALK Data")
+                   "UMAP_Cluster" = paste("UMAP showing the different populations of interest"),
+                   "UMAP_GeneExpression" = paste("UMAP showing the expression of a gene in the populations of interest"),
+                   "ViolinPlot" = HTML(
+                     "ViolinPlot: Violin plot showing the expression of a gene in the different populations of interest<br>",
+                     "Statistics is based on the t test"
+                   ))
     text
   })
   
