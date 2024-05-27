@@ -104,7 +104,12 @@ ui <- dashboardPage(
                                  ),
                                  uiOutput("genes"),
                                  tags$br(),
-                                 uiOutput("statistic_choice")
+                                 uiOutput("statistic_choice"),
+                                 tags$br(),
+                                 downloadButton("download_UMAP", "Download UMAP"),
+                                 downloadButton("download_GeneExp", "Download UMAP_GeneExpression"),
+                                 downloadButton("download_violinplot", "Download ViolinPlot")
+                                 
                 ),
                 # Second menuItem
                 menuItem("DE Genes", tabName = "diff_gene"),
@@ -138,7 +143,11 @@ ui <- dashboardPage(
                                    label = "Choose a gene:",
                                    choices = WT_features,
                                    selected = "SOX10"
-                                 )
+                                 ),
+                                 tags$br(),
+                                 downloadButton("download_pseudo_dimplot", "Download The first plotrow"),
+                                 tags$br(),
+                                 downloadButton("download_pseudo_ggplots", "Download the second row plots")
                 )
     )
   ),
@@ -430,7 +439,7 @@ server <- function(input, output, session) {
     reset("file")
     
     # Feature plot
-    featureplot <- FeaturePlot(cell, features = "user_genes")
+    featureplot <- FeaturePlot(cell, features = "user_genes", cols = c("lightgrey", "#FF6600", "#FF0000"))
     Feature_HeaderPlot<- featureplot + labs(title = header)
     
     # Render the plot with header
@@ -465,34 +474,64 @@ server <- function(input, output, session) {
       )
   })
   
+  # Making the dimplot for the pseudotime analysis
+  Dimplot <- DimPlot(cell, reduction = "DC")
   # output dimplot for the pseudotime analysis
   output$WT_dimplot <- renderPlot({
-    DimPlot(cell, reduction = "DC")
+    Dimplot
   })
   
-  # output pseudoplots
-  output$WT_pseudoplots <- renderPlot({
-
-  # making the pseudotimeplot from SCP to Sympathoblasts
-    ggplot1 <- qplot(sce_slingshot$slingPseudotime_1, as.numeric(cell@assays$RNA@data[input$pseudogene,]), 
-                     color = sce_slingshot$CellType, ylab = paste("Expression of", input$pseudogene, sep = " "), xlab = "Pseudotime") + 
+  # Reactive expression to generate ggplots
+  ggplots <- reactive({
+    req(input$pseudogene)  # Ensure input$pseudogene is available
+    
+    ggplot1 <- qplot(sce_slingshot$slingPseudotime_1, 
+                     as.numeric(cell@assays$RNA@data[input$pseudogene,]), 
+                     color = sce_slingshot$CellType, 
+                     ylab = paste("Expression of", input$pseudogene, sep = " "), 
+                     xlab = "Pseudotime") + 
       theme_bw() + 
       geom_smooth(aes(group = 1), se = FALSE, method = "loess", color = "gray") +
       theme(legend.position = "none") +
       ggtitle("From SCP to Sympathoblasts")
-
-    # Making the pseudotimeplot from SCP to ProlifSympathoblasts
-    ggplot2 <- qplot(sce_slingshot$slingPseudotime_2, as.numeric(cell@assays$RNA@data[input$pseudogene,]), 
-                     color = sce_slingshot$CellType, ylab = paste("Expression of", input$pseudogene, sep = " "), xlab = "Pseudotime") + 
+    
+    ggplot2 <- qplot(sce_slingshot$slingPseudotime_2, 
+                     as.numeric(cell@assays$RNA@data[input$pseudogene,]), 
+                     color = sce_slingshot$CellType, 
+                     ylab = paste("Expression of", input$pseudogene, sep = " "), 
+                     xlab = "Pseudotime") + 
       theme_bw() + 
       geom_smooth(aes(group = 1), se = FALSE, method = "loess", color = "gray") +
       theme(legend.position = "none") +
-      ggtitle("From SCP to ProlifSympathoblasts") 
+      ggtitle("From SCP to ProlifSympathoblasts")
     
-    # outputting the two pseudotimeplots
+    # Arrange the plots next to each other
     grid.arrange(ggplot1, ggplot2, ncol = 2)
   })
   
+  # Output pseudoplots
+  output$WT_pseudoplots <- renderPlot({
+    ggplots()
+  })
+  
+  # Download the first row of plots (the dimplot)
+  output$download_pseudo_dimplot <- downloadHandler(
+    filename = function() { "PseudotimeAnalyse_dimplot.png" },
+    content = function(file) {
+      png(file, width = 1250, height = 750)
+      print(Dimplot)
+      dev.off()
+    }
+  )
+  
+  # Download the second row of plots (the ggplots)
+  output$download_pseudo_ggplots <- downloadHandler(
+    filename = function() { "PseudotimeAnalyse_ggplots.png" },
+    content = function(file) {
+      ggplots <- ggplots()
+      ggsave(file, plot = ggplots, device = "png", width = 12, height = 6)  # Adjust width and height as needed, here specified in inches, not pixels
+    }
+  )
   
   ##############################################################################
   # ALK_Data output
