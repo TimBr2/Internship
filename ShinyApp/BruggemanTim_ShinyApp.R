@@ -106,10 +106,7 @@ ui <- dashboardPage(
                                  tags$br(),
                                  uiOutput("statistic_choice"),
                                  tags$br(),
-                                 downloadButton("download_UMAP", "Download UMAP"),
-                                 downloadButton("download_GeneExp", "Download UMAP_GeneExpression"),
-                                 downloadButton("download_violinplot", "Download ViolinPlot")
-                                 
+                                 uiOutput("download_per_plot")
                 ),
                 # Second menuItem
                 menuItem("DE Genes", tabName = "diff_gene"),
@@ -282,6 +279,29 @@ server <- function(input, output, session) {
     }
   })
   
+  # Download buttons for the plots per tab per plot
+  output$download_per_plot <- renderUI({
+    if (input$gene_exp_tabs == "gene_exp_WT") {
+      if (input$plot == "UMAP_Cluster") {
+        downloadButton("download_UMAP_WT", "Download UMAP")
+      }
+      else if (input$plot == "UMAP_GeneExpression") {
+        downloadButton("download_GeneExp_WT", "Download GeneExpression")
+      }
+      else if (input$plot == "ViolinPlot") {
+        downloadButton("download_violinplot_WT", "Download ViolinPlot")
+      }
+    }
+    else if (input$gene_exp_tabs == "gene_exp_ALK") {
+      if (input$plot == "UMAP_Cluster") {
+        downloadButton("download_UMAP_ALK", "Download UMAP")
+      }
+      else if (input$plot == "UMAP_GeneExpression") {
+        downloadButton("download_GeneExp_ALK", "Download GeneExpression")
+      }
+    }
+  })
+
   
   ##############################################################################
   # WT_Data output
@@ -298,7 +318,39 @@ server <- function(input, output, session) {
     text
   })
   
-  # Make the plot based on the selected plot type
+  # Reactive expression to create the violin plot
+  WT_ViolinPlot <- reactive({
+    req(input$gene, input$comparison1, input$comparison2)  # Ensure inputs are available
+    plot <- VlnPlot(object = cell, 
+                    features = input$gene, pt.size=0) +
+      theme_classic() + 
+      theme(axis.text.x = element_text(angle = 45, 
+                                       hjust = 1, 
+                                       vjust = 1,
+                                       size = 10), 
+            axis.text.y = element_text(size = 10),  
+            plot.title = element_text(size=10),
+            panel.grid.major = element_blank(),
+            panel.grid.minor = element_blank(),
+            panel.background = element_blank(),
+            axis.line = element_line(colour = "black"),
+            legend.position="none",
+            axis.title.x = element_blank(),
+            axis.title.y = element_blank())
+    
+    # Calculate the maximum y-value of the violin plot
+    max_y <- max(ggplot_build(plot)$data[[1]]$ymax)
+    
+    # Add stat_compare_means at the top of the plot
+    plot + stat_compare_means(comparisons = list(c(input$comparison1, input$comparison2)), 
+                              label = "p.signif", 
+                              label.y = max_y - 1)  # Adjust the value to position the label
+    # place for the statistic calculation output
+    #stat_compare_means(label.y = 1.5)
+    })
+  
+  
+  # outputting the plot based on the selected plot type
   output$WT_diffplots <- renderPlot({
     # give the UMAP_cluster plot
     if (input$plot == "UMAP_Cluster") {
@@ -311,42 +363,38 @@ server <- function(input, output, session) {
     }
     # Give the UMAP_cluster + violinplot, without the dots
     else if (input$plot == "ViolinPlot") {
-      # make the violinplot with the selected gene
-      WT_ViolinPlot <- VlnPlot(object = cell, 
-                               features = input$gene, pt.size=0, 
-                               #cols = c("dodgerblue2", "chartreuse3", "indianred3", "darkorange", "mediumorchid")
-      )+
-        #coord_flip()+ 
-        theme_classic()+ 
-        theme(axis.text.x = element_text(angle = 45, 
-                                         hjust = 1, 
-                                         vjust = 1,
-                                         size = 10), 
-              axis.text.y = element_text(size = 10),  
-              plot.title = element_text(size=10),
-              panel.grid.major = element_blank(),
-              panel.grid.minor = element_blank(),
-              panel.background = element_blank(),
-              axis.line = element_line(colour = "black"),
-              legend.position="none",
-              axis.title.x = element_blank(),
-              axis.title.y = element_blank())  
-        # Calculate the maximum y-value of the violin plot
-        max_y <- max(ggplot_build(WT_ViolinPlot)$data[[1]]$ymax)
-        
-        # Add stat_compare_means at the top of the plot
-        WT_ViolinPlot <- WT_ViolinPlot +
-          stat_compare_means(comparisons = list(c(input$comparison1, c(input$comparison2))), 
-                             label = "p.signif", 
-                             label.y = max_y - 1)  # Adjust the value to position the label  #+ 
-        # place for the statistic calculation output
-        #stat_compare_means(label.y = 1.5)
-      
       # give the UMAP_cluster + violinplot
       UMAPPlot(cell, group.by = "CellType") +
-        WT_ViolinPlot
+        WT_ViolinPlot()
     }
   })
+  
+  # Downloading the different gene expression plots for WT
+  output$download_UMAP_WT <- downloadHandler(
+    filename = function() {"UMAP_WT.png"},
+    content = function(file) {
+      png(file, width = 1250, height = 750)
+      print(UMAPPlot(cell, group.by = "CellType"))
+      dev.off()
+    }
+  )
+  output$download_GeneExp_WT <- downloadHandler(
+    filename = function() {paste(input$gene, "GeneExpression_WT.png", sep = "_")},
+    content = function(file) {
+      png(file, width = 1250, height = 750)
+      print(FeaturePlot(cell, features = input$gene, cols = c("lightgrey", "#FF6600", "#FF0000")))
+      dev.off()
+    }
+  )
+  output$download_violinplot_WT <- downloadHandler(
+    filename = function() {paste(input$gene, "ViolinPlot.png", sep = "_")},
+    content = function(file) {
+      png(file, width = 1250, height = 750)
+      print(WT_ViolinPlot())
+      dev.off()
+    }
+  )
+  
   
   # making a textbox above the datatable
   output$Datatable_text <- renderText({
@@ -457,7 +505,7 @@ server <- function(input, output, session) {
         }
       },
       content = function(file) {
-        png(file)
+        png(file, width = 1250, height = 750)
         # Print the plot with header
         print(Feature_HeaderPlot)
         dev.off()
@@ -558,39 +606,30 @@ server <- function(input, output, session) {
       UMAPPlot(ALK, group.by = "Celltype") +
         FeaturePlot(ALK, features = input$gene, cols = c("lightgrey", "#FF6600", "#FF0000"))
     }
-    # Give the UMAP_cluster + violinplot, without the dots
+    # No Violinplot
     else if (input$plot == "ViolinPlot") {
-      # make the violinplot with the selected gene
-      ALK_ViolinPlot <- VlnPlot(object = ALK, 
-                                features = input$gene, pt.size=0, 
-                                #cols = c("dodgerblue2", "chartreuse3", "indianred3", "darkorange", "mediumorchid")
-      )+
-        #coord_flip()+ 
-        theme_classic()+ 
-        theme(axis.text.x = element_text(angle = 45, 
-                                         hjust = 1, 
-                                         vjust = 1,
-                                         size = 10), 
-              axis.text.y = element_text(size = 10),  
-              plot.title = element_text(size=10),
-              panel.grid.major = element_blank(),
-              panel.grid.minor = element_blank(),
-              panel.background = element_blank(),
-              axis.line = element_line(colour = "black"),
-              legend.position="none",
-              axis.title.x = element_blank(),
-              axis.title.y = element_blank()) + 
-        # This is for the statistic line
-        stat_compare_means(comparisons = list("ALK","SC"),label = "p.signif",
-                           label.y = 1)  + 
-        # place for the statistic calculation output
-        stat_compare_means(label.y = 1.5)
-      
-      # give the UMAP_cluster + violinplot
-      UMAPPlot(ALK, group.by = "Celltype") +
-        ALK_ViolinPlot
+      "Please use the contact button for more information"
     }
   })
+  
+  # Downloading the different gene expression plots for ALK
+  output$download_UMAP_ALK <- downloadHandler(
+    filename = function() {"UMAP_ALK.png"},
+    content = function(file) {
+      png(file, width = 1250, height = 750)
+      print(UMAPPlot(ALK, group.by = "Celltype"))
+      dev.off()
+    }
+  )
+  output$download_GeneExp_ALK <- downloadHandler(
+    filename = function() {paste(input$gene, "GeneExpression_ALK.png", sep = "_")},
+    content = function(file) {
+      png(file, width = 1250, height = 750)
+      print(FeaturePlot(ALK, features = input$gene, cols = c("lightgrey", "#FF6600", "#FF0000")))
+      dev.off()
+    }
+  )
+  
   
   
 }
