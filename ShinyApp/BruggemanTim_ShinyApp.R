@@ -426,34 +426,35 @@ server <- function(input, output, session) {
     u.scores <- as.data.frame(u.scores)
     cell <- AddMetaData(cell, u.scores)
     
-    
     # Reset the file input
     reset("file")
     
     # Feature plot
+    featureplot <- FeaturePlot(cell, features = "user_genes")
+    Feature_HeaderPlot<- featureplot + labs(title = header)
+    
+    # Render the plot with header
     output$signature_plot <- renderPlot({
-      featureplot <- FeaturePlot(cell, features = "user_genes")
-      featureplot + labs(title = header)
+      Feature_HeaderPlot
     })
-  })
-  
-  # downloadbutton for the signatureplot
-  output$download_signature <- downloadHandler(
-    filename = function() {
-      if (input$header != "") {
-        paste(input$header, ".png", sep = "")
-      } else {
-        "SignaturePlot.png"
+    
+    # downloadbutton for the signatureplot
+    output$download_signature <- downloadHandler(
+      filename = function() {
+        if (header != "") {
+          paste(header, ".png", sep = "")
+        } else {
+          "signatureplot.png"
+        }
+      },
+      content = function(file) {
+        png(file)
+        # Print the plot with header
+        print(Feature_HeaderPlot)
+        dev.off()
       }
-    },
-    content = function(file) {
-      png(file)
-      featureplot <- FeaturePlot(cell, features = "user_genes")
-      plotWithHeader <- featureplot + labs(title = input$header)
-      print(plotWithHeader)
-      dev.off()
-    }
-  )
+    )
+  })
   
   # making information text for the pseudoanalysis tab
   output$pseudo_text <- renderText({
