@@ -35,6 +35,9 @@ library(escape, lib.loc = lib_path)
 library(UCell, lib.loc = lib_path) # for the signature score
 # install.packages("gridExtra", lib = lib_path)
 library(gridExtra, lib.loc = lib_path)
+# install.packages("shinyjs", lib = lib_path)
+library(shinyjs) # to reset input file for signaturetab
+library(openxlsx)
 
 options(bitmapType = "cairo") # specific for the HPC to make plots
 
@@ -112,16 +115,20 @@ ui <- dashboardPage(
                                    label = "Select variables:",
                                    choices = names(DEGenes),
                                    selected = "Sympathoblasts"
-                                 )
+                                 ),
+                                 tags$br(),
+                                 downloadButton("download_degenes", "Download")
                 ),
                 # third menuItem
+                useShinyjs(),  # Initialize shinyjs
                 menuItem("Signature Score", tabName = "score"),
                 conditionalPanel("input.sidebarid == 'score'",
-                                 fileInput("file", "Upload text file",
-                                           accept = c(".txt")),
-                                 textInput("genes", "Enter gene names (separated by comma)"),
+                                 fileInput("file", "Upload text file", accept = c(".txt")),
+                                 textInput("genes", "Enter gene names (separated by comma and at least 5 genes)"),
+                                 textInput("header", "Enter you header here:"),
                                  actionButton("calculate", "Calculate Signature Score"),
-                                 textInput("header", "Enter you header here:")
+                                 tags$br(),
+                                 downloadButton("download_signature","Download")
                 ),
                 # fourth menuItem
                 menuItem("Pseudotime analyse", tabName = "pseudo"),
@@ -129,7 +136,8 @@ ui <- dashboardPage(
                                  selectizeInput(
                                    inputId = "pseudogene",
                                    label = "Choose a gene:",
-                                   choices = WT_features
+                                   choices = WT_features,
+                                   selected = "SOX10"
                                  )
                 )
     )
@@ -219,7 +227,7 @@ server <- function(input, output, session) {
   output$genes <- renderUI({
     if (input$plot == "ViolinPlot" || input$plot == "UMAP_GeneExpression") {
       selected_gene_choice <- if (input$gene_exp_tabs == "gene_exp_WT") {
-        "MRPL20"
+        "STMN2"
       } else if (input$gene_exp_tabs == "gene_exp_ALK") {
         "ALK" #ALK gen nemen
       } else {
@@ -313,10 +321,15 @@ server <- function(input, output, session) {
               axis.line = element_line(colour = "black"),
               legend.position="none",
               axis.title.x = element_blank(),
-              axis.title.y = element_blank()) + 
-        # This is for the statistic line
-        stat_compare_means(comparisons = list(c(input$comparison1, c(input$comparison2))),label = "p.signif",
-                           label.y = 1)  #+ 
+              axis.title.y = element_blank())  
+        # Calculate the maximum y-value of the violin plot
+        max_y <- max(ggplot_build(WT_ViolinPlot)$data[[1]]$ymax)
+        
+        # Add stat_compare_means at the top of the plot
+        WT_ViolinPlot <- WT_ViolinPlot +
+          stat_compare_means(comparisons = list(c(input$comparison1, c(input$comparison2))), 
+                             label = "p.signif", 
+                             label.y = max_y - 1)  # Adjust the value to position the label  #+ 
         # place for the statistic calculation output
         #stat_compare_means(label.y = 1.5)
       
@@ -335,11 +348,26 @@ server <- function(input, output, session) {
   output$DEGenes_table <- DT::renderDT({
     req(input$selected_var)
     DEGenes_sample <- DEGenes[[input$selected_var]]
-    datatable(
+    datatable <- datatable(
       data = DEGenes_sample,
-      options = list(pageLength = 50)
-    )
+      options = list(pageLength = 50))
+    datatable
   })
+  
+  # Download DEGenes table in xlsx
+  output$download_degenes <- downloadHandler(
+    filename = function() {"DeGenes.xlsx"},
+    content = function(file) {
+      wb <- createWorkbook()
+      for (var in names(DEGenes)) {
+        DEGenes_sample <- DEGenes[[var]]
+        DEGenes_sample <- data.frame(Gene = rownames(DEGenes_sample), DEGenes_sample)
+        addWorksheet(wb, var)
+        writeData(wb, var, DEGenes_sample)
+      }
+      saveWorkbook(wb, file, overwrite = TRUE)
+    }
+  )
   
   # making text for the signatureplot tab
   output$signature_text <- renderText({
@@ -389,7 +417,6 @@ server <- function(input, output, session) {
     
     # Show notification for signature score calculation
     showNotification("Signature Score being calculated, please be patient")
-    
     # Run signature scoring
     DefaultAssay(cell) <- "RNA"
     u.scores <- enrichIt(obj = cell, gene.sets = signatures, groups = 2000, 
@@ -399,12 +426,34 @@ server <- function(input, output, session) {
     u.scores <- as.data.frame(u.scores)
     cell <- AddMetaData(cell, u.scores)
     
+    
+    # Reset the file input
+    reset("file")
+    
     # Feature plot
     output$signature_plot <- renderPlot({
       featureplot <- FeaturePlot(cell, features = "user_genes")
       featureplot + labs(title = header)
     })
   })
+  
+  # downloadbutton for the signatureplot
+  output$download_signature <- downloadHandler(
+    filename = function() {
+      if (input$header != "") {
+        paste(input$header, ".png", sep = "")
+      } else {
+        "SignaturePlot.png"
+      }
+    },
+    content = function(file) {
+      png(file)
+      featureplot <- FeaturePlot(cell, features = "user_genes")
+      plotWithHeader <- featureplot + labs(title = input$header)
+      print(plotWithHeader)
+      dev.off()
+    }
+  )
   
   # making information text for the pseudoanalysis tab
   output$pseudo_text <- renderText({
