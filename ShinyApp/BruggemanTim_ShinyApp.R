@@ -558,15 +558,16 @@ server <- function(input, output, session) {
       HTML(
         "Diffusion plot showing the differentiating cells colored and annotated by cell population.<br>",
         "Plot showing the expression of a gene along the lineage trajectory in the diffusion plot, annotated for the populations of interest.<br>",
-        "The first plot shows the overall structure of the data and clusters of cells with similar gene expression profiles together.<br>",
+        "The first plots show the overall structure of the data and clusters of cells with similar gene expression profiles together.
+        The middle plot shows the arm from SCP to Sympathoblasts (SAPs), the right plot shows the arm from SCP to ProlifSympathoblasts (ProSAPs).<br>",
         "The two plots below shows the pseudotime analysis. The cell types are ordered along a biological process, using the gene expression profiles.
-        This plot visualizes the progression of cells and the transition of gene expression between different states along the biological process from SCP to Sympathoblasts (SAPs)
-        and from SCP to ProlifSympathoblasts."
+        This plot visualizes the progression of cells and the transition of gene expression between different states along the biological process from SCP to SAP cells
+        and from SCP to ProSAP cells."
       )
   })
   
   # Making the dimplot for the pseudotime analysis
-  Dimplot <- DimPlot(cell, reduction = "DC")
+  Dimplot <- DimPlot(cell, reduction = "DC") + NoL
   # output dimplot for the pseudotime analysis
   output$WT_dimplot <- renderPlot({
     grid.arrange(Dimplot, SCP_SAP_PLOT, SCP_PROSAP_PLOT, ncol = 3)
@@ -582,9 +583,10 @@ server <- function(input, output, session) {
                      ylab = paste("Expression of", input$pseudogene, sep = " "), 
                      xlab = "Pseudotime") + 
       theme_bw() + 
-      geom_smooth(aes(group = 1), se = FALSE, method = "loess", color = "gray") +
+      geom_smooth(aes(group = 1), se = FALSE, method = "loess", color = "black") +
       theme(legend.position = "none") +
-      ggtitle("From SCP to Sympathoblasts")
+      ggtitle("From SCP to Sympathoblasts") +
+      theme(plot.title = element_text(face = "bold"))
     
     ggplot2 <- qplot(sce_slingshot$slingPseudotime_2, 
                      as.numeric(cell@assays$RNA@data[input$pseudogene,]), 
@@ -592,9 +594,10 @@ server <- function(input, output, session) {
                      ylab = paste("Expression of", input$pseudogene, sep = " "), 
                      xlab = "Pseudotime") + 
       theme_bw() + 
-      geom_smooth(aes(group = 1), se = FALSE, method = "loess", color = "gray") +
+      geom_smooth(aes(group = 1), se = FALSE, method = "loess", color = "black") +
       theme(legend.position = "none") +
-      ggtitle("From SCP to ProlifSympathoblasts")
+      ggtitle("From SCP to ProlifSympathoblasts") +
+      theme(plot.title = element_text(face = "bold"))
     
     # Arrange the plots next to each other
     grid.arrange(ggplot1, ggplot2, ncol = 2)
@@ -607,7 +610,7 @@ server <- function(input, output, session) {
   
   # Download the first row of plots (the dimplot)
   output$download_pseudo_dimplot <- downloadHandler(
-    filename = function() { "PseudotimeAnalyse_dimplot.png" },
+    filename = function() { "Overall_PseudotimeAnalyse.png" },
     content = function(file) {
       png(file, width = 1750, height = 750)
       grid.arrange(Dimplot, SCP_SAP_PLOT, SCP_PROSAP_PLOT, ncol = 3)
@@ -617,7 +620,7 @@ server <- function(input, output, session) {
   
   # Download the second row of plots (the ggplots)
   output$download_pseudo_ggplots <- downloadHandler(
-    filename = function() { "PseudotimeAnalyse_ggplots.png" },
+    filename = function() {paste(input$pseudogene, "PseudotimeAnalysis.png", sep = "_") },
     content = function(file) {
       ggplots <- ggplots()
       ggsave(file, plot = ggplots, device = "png", width = 12, height = 6)  # Adjust width and height as needed, here specified in inches, not pixels
