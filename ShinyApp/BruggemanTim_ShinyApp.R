@@ -36,8 +36,9 @@ library(UCell, lib.loc = lib_path) # for the signature score
 # install.packages("gridExtra", lib = lib_path)
 library(gridExtra, lib.loc = lib_path)
 # install.packages("shinyjs", lib = lib_path)
-library(shinyjs) # to reset input file for signaturetab
-library(openxlsx)
+library(shinyjs, lib.loc = lib_path) # to reset input file for signaturetab
+# install.packages("openxlsx", lib = lib_path)
+library(openxlsx, lib.loc = lib_path)
 
 options(bitmapType = "cairo") # specific for the HPC to make plots
 
@@ -98,7 +99,7 @@ ui <- dashboardPage(
                 conditionalPanel("input.sidebarid == 'gene_exp'",
                                  selectInput(
                                    inputId = "plot",
-                                   label = "choose a plot:",
+                                   label = "Choose a plot:",
                                    choices = c("UMAP_Cluster", "UMAP_GeneExpression", "ViolinPlot"),
                                    selected = "UMAP_Cluster"
                                  ),
@@ -106,7 +107,8 @@ ui <- dashboardPage(
                                  tags$br(),
                                  uiOutput("statistic_choice"),
                                  tags$br(),
-                                 uiOutput("download_per_plot")
+                                 div(style= "text-align: center;",
+                                     uiOutput("download_per_plot"))
                 ),
                 # Second menuItem
                 menuItem("DE Genes", tabName = "diff_gene"),
@@ -119,7 +121,8 @@ ui <- dashboardPage(
                                    selected = "Sympathoblasts"
                                  ),
                                  tags$br(),
-                                 downloadButton("download_degenes", "Download")
+                                 div(style = "text-align: center;",
+                                     downloadButton("download_degenes", "Download"))
                 ),
                 # third menuItem
                 useShinyjs(),  # Initialize shinyjs
@@ -127,10 +130,11 @@ ui <- dashboardPage(
                 conditionalPanel("input.sidebarid == 'score'",
                                  fileInput("file", "Upload text file", accept = c(".txt")),
                                  textInput("genes", "Enter gene names (separated by comma and at least 5 genes)"),
-                                 textInput("header", "Enter you header here:"),
+                                 textInput("header", "Enter you plot title here:"),
                                  actionButton("calculate", "Calculate Signature Score"),
                                  tags$br(),
-                                 downloadButton("download_signature","Download")
+                                 div(style = "text-align: center;",
+                                     downloadButton("download_signature","Download"))
                 ),
                 # fourth menuItem
                 menuItem("Pseudotime analyse", tabName = "pseudo"),
@@ -142,9 +146,11 @@ ui <- dashboardPage(
                                    selected = "SOX10"
                                  ),
                                  tags$br(),
-                                 downloadButton("download_pseudo_dimplot", "Download The first plotrow"),
+                                 div(style= "text-align: center;",
+                                     downloadButton("download_pseudo_dimplot", "Download The first plotrow")),
                                  tags$br(),
-                                 downloadButton("download_pseudo_ggplots", "Download the second row plots")
+                                 div(style= "text-align: center;",
+                                     downloadButton("download_pseudo_ggplots", "Download the second row plots"))
                 )
     )
   ),
@@ -309,7 +315,9 @@ server <- function(input, output, session) {
   # making a text box above the plots from the first tab for WT
   output$WT_plottext <- renderUI({
     text <- switch(input$plot,
-                   "UMAP_Cluster" = paste("UMAP showing the different populations of interest"),
+                   "UMAP_Cluster" = HTML("UMAP showing the different populations of interest<br>",
+                                         "A UMAP (Uniform Manifold Approximation and Projection) helps to visualize the data information and shows patterns in the data.
+                                         This way, the dots that form clusters on the UMAP can be interpreted as separate celltypes"),
                    "UMAP_GeneExpression" = paste("UMAP showing the expression of a gene in the populations of interest"),
                    "ViolinPlot" = HTML(
                      "ViolinPlot: Violin plot showing the expression of a gene in the different populations of interest<br>",
@@ -589,9 +597,7 @@ server <- function(input, output, session) {
     text <- switch(input$plot,
                    "UMAP_Cluster" = paste("UMAP showing the different populations of interest"),
                    "UMAP_GeneExpression" = paste("UMAP showing the expression of a gene in the populations of interest"),
-                   "ViolinPlot" = HTML(
-                     "ViolinPlot: Violin plot showing the expression of a gene in the different populations of interest<br>",
-                     "Statistics is based on the t test"
+                   "ViolinPlot" = paste("Please use the contact button for more information"
                    ))
     text
   })
@@ -606,10 +612,7 @@ server <- function(input, output, session) {
       UMAPPlot(ALK, group.by = "Celltype") +
         FeaturePlot(ALK, features = input$gene, cols = c("lightgrey", "#FF6600", "#FF0000"))
     }
-    # No Violinplot
-    else if (input$plot == "ViolinPlot") {
-      "Please use the contact button for more information"
-    }
+    # No Violinplot for the ALK data
   })
   
   # Downloading the different gene expression plots for ALK
