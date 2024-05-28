@@ -424,6 +424,7 @@ server <- function(input, output, session) {
     HTML("List of differential expressed genes in the selected population vs all other populations.<br>",
          "The first column represents the genes.<br>",
          "The second column contains the p-values. This value comes from the statistical test used to determine if there is a significant difference in gene expression between two groups.
+         in this case group one is the selected variable and group two are all the other groups combined.
           A p-value lower than 0.05 indicates a highly significant result. A p-value of exactly 0 is very high and may be due to rounding.<br>",
          "The third column is the avg_log2FC or average log2 fold change. A positive value indicates that the gene is upregulated in the first group compared to the second group. A negative value indicates downregulation.<br>",
          "The fourth column is the pct.1 and represents the percentage of cells in the first group that express the gene above a certain treshold. It shows how prevalent the gene expression is within the first group.<br>",
@@ -552,7 +553,7 @@ server <- function(input, output, session) {
         "Plot showing the expression of a gene along the lineage trajectory in the diffusion plot, annotated for the populations of interest.<br>",
         "The first plot shows the overall structure of the data and clusters of cells with similar gene expression profiles together.<br>",
         "The two plots below shows the pseudotime analysis. The cell types are ordered along a biological process, using the gene expression profiles.
-        This plot visualizes the progression of cells and the transition of gene expression between different states along the biological process from SCP to Sympathoblasts
+        This plot visualizes the progression of cells and the transition of gene expression between different states along the biological process from SCP to Sympathoblasts (SAPs)
         and from SCP to ProlifSympathoblasts."
       )
   })
@@ -561,7 +562,7 @@ server <- function(input, output, session) {
   Dimplot <- DimPlot(cell, reduction = "DC")
   # output dimplot for the pseudotime analysis
   output$WT_dimplot <- renderPlot({
-    Dimplot
+    grid.arrange(Dimplot, SCP_SAP_PLOT, SCP_PROSAP_PLOT, ncol = 3)
   })
   
   # Reactive expression to generate ggplots
@@ -601,8 +602,8 @@ server <- function(input, output, session) {
   output$download_pseudo_dimplot <- downloadHandler(
     filename = function() { "PseudotimeAnalyse_dimplot.png" },
     content = function(file) {
-      png(file, width = 1250, height = 750)
-      print(Dimplot)
+      png(file, width = 1500, height = 750)
+      grid.arrange(Dimplot, SCP_SAP_PLOT, SCP_PROSAP_PLOT, ncol = 3)
       dev.off()
     }
   )
