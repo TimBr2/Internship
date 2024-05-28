@@ -193,7 +193,7 @@ ui <- dashboardPage(
                        tags$h3("Signature Score"),
                        uiOutput("signature_text"),
                        tags$br(),
-                       plotOutput("signature_plot", height = 500, width = 800)
+                       plotOutput("signature_plot")
               )),
       # output for fourth menu: pseudotime analyse
       tabItem(tabName = "pseudo",
@@ -309,7 +309,7 @@ server <- function(input, output, session) {
     }
   })
 
-  
+
   ##############################################################################
   # WT_Data output
   ################
@@ -377,7 +377,14 @@ server <- function(input, output, session) {
   output$WT_diffplots <- renderPlot({
     # give the UMAP_cluster plot
     if (input$plot == "UMAP_Cluster") {
-      UMAPPlot(cell, group.by = "CellType")
+      umap_plot_WT <- UMAPPlot(cell, group.by = "CellType")
+      blank_plot <- ggplot() + 
+        theme_void() + 
+        theme(
+          panel.background = element_rect(fill = "white", color = NA),
+          plot.background = element_rect(fill = "white", color = NA)
+        )
+      grid.arrange(umap_plot_WT, blank_plot, ncol = 2, widths = c(2, 1))
     }
     # give the UMAP_cluster + UMAP_GeneExpression plots
     else if (input$plot == "UMAP_GeneExpression") {
@@ -525,7 +532,7 @@ server <- function(input, output, session) {
     
     # Render the plot with header
     output$signature_plot <- renderPlot({
-      Feature_HeaderPlot
+      UMAPPlot(cell, group.by = "CellType") + Feature_HeaderPlot
     })
     
     # downloadbutton for the signatureplot
@@ -602,7 +609,7 @@ server <- function(input, output, session) {
   output$download_pseudo_dimplot <- downloadHandler(
     filename = function() { "PseudotimeAnalyse_dimplot.png" },
     content = function(file) {
-      png(file, width = 1500, height = 750)
+      png(file, width = 1750, height = 750)
       grid.arrange(Dimplot, SCP_SAP_PLOT, SCP_PROSAP_PLOT, ncol = 3)
       dev.off()
     }
@@ -646,7 +653,14 @@ server <- function(input, output, session) {
   output$ALK_diffplots <- renderPlot({
     # give the UMAP_cluster plot
     if (input$plot == "UMAP_Cluster") {
-      UMAPPlot(ALK, group.by = "Celltype")
+      umap_plot_ALK <- UMAPPlot(ALK, group.by = "Celltype")
+      blank_plot <- ggplot() + 
+        theme_void() + 
+        theme(
+          panel.background = element_rect(fill = "white", color = NA),
+          plot.background = element_rect(fill = "white", color = NA)
+        )
+      grid.arrange(umap_plot_ALK, blank_plot, ncol = 2, widths = c(2, 1))
     }
     # give the UMAP_cluster + UMAP_GeneExpression plots
     else if (input$plot == "UMAP_GeneExpression") {
