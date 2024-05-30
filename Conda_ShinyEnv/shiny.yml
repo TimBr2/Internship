@@ -1,0 +1,22 @@
+channels:
+  - conda-forge
+  - bioconda
+
+dependencies:
+  - r-base=4.2
+  - r-shiny
+  - r-seurat
+  - r-bslib
+  - r-shinydashboard
+  - r-dt
+  - r-dplyr
+  - r-ggplot2
+  - r-ggpubr
+  - bioconductor-slingshot
+  - r-viridis
+  - bioconductor-destiny
+  - bioconductor-escape
+  - bioconductor-ucell
+  - r-gridextra
+  - r-shinyjs
+  - r-openxlsx
