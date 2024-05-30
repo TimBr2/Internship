@@ -147,10 +147,10 @@ ui <- dashboardPage(
                                  ),
                                  tags$br(),
                                  div(style= "text-align: center;",
-                                     downloadButton("download_pseudo_dimplot", "Download The first plotrow")),
+                                     downloadButton("download_pseudo_dimplot", "Download the first plotrow")),
                                  tags$br(),
                                  div(style= "text-align: center;",
-                                     downloadButton("download_pseudo_ggplots", "Download the second row plots"))
+                                     downloadButton("download_pseudo_ggplots", "Download the second plotrow"))
                 )
     )
   ),
@@ -318,24 +318,33 @@ server <- function(input, output, session) {
     text <- switch(input$plot,
                    "UMAP_Cluster" = HTML(
                      "<h3>UMAP Cluster - Wild Type</h3>",
-                     "UMAP showing the different populations of interest.<br>",
-                     "A UMAP (Uniform Manifold Approximation and Projection) helps to visualize the data information and shows patterns in the data. 
-                     This way, the dots that form clusters on the UMAP can be interpreted as separate cell types."
+                     "<strong>Title:</strong> UMAP showing the different populations of interest.<br>",
+                     "<strong>What does it show:</strong> A UMAP (Uniform Manifold Approximation and Projection) 
+                     helps to visualize the data information and shows patterns in the data. 
+                     This way, the dots that form clusters on the UMAP can be interpreted as separate cell types.<br>",
+                     "<strong>Legend:</strong> Each dot represents a single cell, here colored by the different populations of interest.
+                     The X and Y axes represent the two dimensions in the reduced space created by UMAP, which do not have
+                     specific units but capture the structure and relationships within the data. Groupings of dots that are
+                     close to each other represent similar data points, indicating potential clusters or subgroups within the dataset."
                    ),
                    "UMAP_GeneExpression" = HTML(
                        "<h3>UMAP Gene Expression - Wild Type</h3>",
-                       "UMAP showing the expression of a gene in the populations of interest.<br>",
-                       "The gene expression is indicated by the red color. A darker red color means a higher expression in a particular cell type, 
+                       "<strong>Title:</strong> UMAP showing the expression of a gene in the populations of interest.<br>",
+                       "<strong>What does is show:</strong> The expression of a gene of interest in each single cell in the data.<br>",
+                       "<strong>Legend:</strong> The gene expression is indicated by the red color. A darker red color means a higher expression in a particular cell type, 
                        while lighter red indicates lower or non-significant expression."
                    ),
                    "ViolinPlot" = HTML(
                      "<h3>Violin Plot - Wild Type</h3>",
-                     "Violin plot showing the expression of a gene in the different populations of interest.<br>",
-                     "The width of each violin represents the density of cells that express a particular gene at different expression levels.
+                     "<strong>Title:</strong> Violin plot showing the expression of a gene in the different populations of interest.<br>",
+                     "<strong>What does it show:</strong> The expression of a gene of interest in each cell type (population).<br>",
+                     "<strong>Legend:</strong> The width of each violin represents the density of cells that express a particular gene at different expression levels.
                      Wider sections indicate a higher cell density at these expression levels.<br>",
                      "Statistics is based on the t test. The t-test compares the mean expression levels of a gene between two groups of cells.
-                     The p-value represents the probability that the observed difference in gene expression occurred by chance.
-                     A p-value lower than 0.05 indicates a statistically significant difference."
+                     The statistics are visualised using a line between different cell types. Above this line there is 'ns' or '*'.
+                     If the line connecting two cell types is labeled with 'ns', it indicates that there is no significant statistical difference in gene expression 
+                     levels between those cell types. On the other hand, if the line is labeled with '*', it indicates a significant statistical difference. 
+                     The number of '*' symbols corresponds to the level of significance, with more stars suggesting a higher level of statistical difference."
                    )
     )
     text
@@ -428,16 +437,22 @@ server <- function(input, output, session) {
   
   # making a textbox above the datatable
   output$Datatable_text <- renderUI({
-    HTML("List of differential expressed genes in the selected population vs all other populations.<br>",
-         "The first column represents the genes.<br>",
-         "The second column contains the p-values. This value comes from the statistical test used to determine if there is a significant difference in gene expression between two groups.
-         in this case group one is the selected variable and group two are all the other groups combined.
-          A p-value lower than 0.05 indicates a highly significant result. A p-value of exactly 0 is very high and may be due to rounding.<br>",
-         "The third column is the avg_log2FC or average log2 fold change. A positive value indicates that the gene is upregulated in the first group compared to the second group. A negative value indicates downregulation.<br>",
-         "The fourth column is the pct.1 and represents the percentage of cells in the first group that express the gene above a certain treshold. It shows how prevalent the gene expression is within the first group.<br>",
-         "The fifth column is the pct.2 and is similar to the fourth column. It represents the percentage of cells in the second group that express the gene above a certain treshold.<br>",
-         "The last column is the p_val_adj or the adjusted p-value. This column contains the p-values for multiple testing. Because many genes are tested simultaneously, adjustments are made to control the false discovery rate(FDR).
-         This reduces the likelihood of type I errors (false positives)."
+    HTML("<strong>Title:</strong> Differential gene expression analysis.<br>",
+         "<strong>What does is show:</strong> List of differential expressed genes in the selected population vs all other populations.<br>",
+         "<strong>Legend:</strong><br>",
+         "<ul>
+         <li>The first column represents the <strong>gene symbols</strong>.</li>
+         <li>The second column contains the <strong>p-values</strong>. This value comes from the statistical test used to determine if there is a significant 
+         difference in gene expression between two groups. In this case group one is the selected variable and group two are all the other groups combined. 
+         A p-value lower than 0.05 indicates a highly significant result.</li>
+         <li>The third column is the <strong>avg_log2FC</strong> or average log2 fold change. A positive value indicates that the gene is upregulated in the first group compared 
+         to the second group. A negative value indicates downregulation.</li>
+         <li>The fourth column is the <strong>pct.1</strong> and represents the percentage of cells in the first group that express the gene above a certain threshold. 
+         It shows how prevalent the gene expression is within the first group.</li>
+         <li>The fifth column is the <strong>pct.2</strong> and is similar to the fourth column. It represents the percentage of cells in the second group that express the gene above a certain threshold.</li>
+         <li>The last column is the <strong>p_val_adj</strong> or the adjusted p-value. This column contains the p-values for multiple testing. Because many genes are tested simultaneously, 
+         adjustments are made to control the false discovery rate(FDR). This reduces the likelihood of type I errors (false positives).</li>
+         </ul>"
          )
   })
   
@@ -468,9 +483,12 @@ server <- function(input, output, session) {
   
   # making text for the signatureplot tab
   output$signature_text <- renderUI({
-    HTML("UMAP showing the signature score of the gene set in the populations of interest.<br>", 
-         "Signature Score calculations are based on the UCell method and enrichIt function, it shows the combined expression of all genes in the gene set.<br>",
-         "Please be patient, this plot can take a while to calculate.")
+    HTML("<strong>Title:</strong> UMAP showing the signature score of the gene set in the populations of interest.<br>",
+         "<strong>What does it show:</strong> It shows the combined expression of all genes in a gene set, the signature score calculations are based on the UCell method and enrichIt function.<br>",
+         "<strong>Legend:</strong> The signature score is indicated by the red color. A darker red color means a higher expression in a particular cell, while lighter red indicates lower or non-significant expression.<br>",
+         "<br>",
+         "<strong>Please be patient, this plot can take a while to calculate.</strong>"
+         )
   })
   
   # Reactive expression to read and process the uploaded file
@@ -556,18 +574,20 @@ server <- function(input, output, session) {
   # making information text for the pseudoanalysis tab
   output$pseudo_text <- renderUI({
       HTML(
-        "Diffusion plot showing the differentiating cells colored and annotated by cell population.<br>",
-        "Plot showing the expression of a gene along the lineage trajectory in the diffusion plot, annotated for the populations of interest.<br>",
-        "The first plots show the overall structure of the data and clusters of cells with similar gene expression profiles together.
-        The middle plot shows the arm from SCP to Sympathoblasts (SAPs), the right plot shows the arm from SCP to ProlifSympathoblasts (ProSAPs).<br>",
-        "The two plots below shows the pseudotime analysis. The cell types are ordered along a biological process, using the gene expression profiles.
-        This plot visualizes the progression of cells and the transition of gene expression between different states along the biological process from SCP to SAP cells
-        and from SCP to ProSAP cells."
+        "<strong>Title:</strong> Lineage trajectories<br>",
+        "<strong>What does it show:</strong><br>",
+        "<ol type='A'>
+        <li>Diffusion plot showing the differentiating cells colored and annotated by cell population.</li>
+        <li>Diffusion maps of in vitro differentiating cells colored by pseudotime trajectory for the two different differentiation arms.</li>
+        <li>Pseudotime analysis plot showing the expression of a gene along the lineage trajectory in the diffusion plot, annotated for the populations of interest, again for the two different differentiation arms.</li>
+        </ol>",
+        "<strong>Legend:</strong> The diffusion map embeddings were calculated using the destiny R package. Single-cell pseudotime trajectories were constructed using the slingshot R package based on the 
+        populations of interest and the DC components from destiny. A node in cluster 12 (SCPs) was selected as the starting point for the trajectory."
       )
   })
   
   # Making the dimplot for the pseudotime analysis
-  Dimplot <- DimPlot(cell, reduction = "DC") + NoL
+  Dimplot <- DimPlot(cell, reduction = "DC") + NoLegend() + ggtitle("A")
   # output dimplot for the pseudotime analysis
   output$WT_dimplot <- renderPlot({
     grid.arrange(Dimplot, SCP_SAP_PLOT, SCP_PROSAP_PLOT, ncol = 3)
@@ -635,19 +655,25 @@ server <- function(input, output, session) {
     text <- switch(input$plot,
                    "UMAP_Cluster" = HTML(
                      "<h3>UMAP Cluster - ALK</h3>",
-                     "UMAP showing the different populations of interest.<br>",
-                     "A UMAP (Uniform Manifold Approximation and Projection) helps to visualize the data information and shows patterns in the data. 
-                     This way, the dots that form clusters on the UMAP can be interpreted as separate cell types."
+                     "<strong>Title:</strong> UMAP showing the different populations of interest.<br>",
+                     "<strong>What does it show:</strong> A UMAP (Uniform Manifold Approximation and Projection) 
+                     helps to visualize the data information and shows patterns in the data. 
+                     This way, the dots that form clusters on the UMAP can be interpreted as separate cell types.<br>",
+                     "<strong>Legend:</strong> Each dot represents a single cell, here colored by the different populations of interest.
+                     The X and Y axes represent the two dimensions in the reduced space created by UMAP, which do not have
+                     specific units but capture the structure and relationships within the data. Groupings of dots that are
+                     close to each other represent similar data points, indicating potential clusters or subgroups within the dataset."
                    ),
                    "UMAP_GeneExpression" = HTML(
                      "<h3>UMAP Gene Expression - ALK</h3>",
-                     "UMAP showing the expression of a gene in the populations of interest.<br>",
-                     "The gene expression is indicated by the red color. A darker red color means a higher expression in a particular cell type, 
+                     "<strong>Title:</strong> UMAP showing the expression of a gene in the populations of interest.<br>",
+                     "<strong>What does is show:</strong> The expression of a gene of interest in each single cell in the data.<br>",
+                     "<strong>Legend:</strong> The gene expression is indicated by the red color. A darker red color means a higher expression in a particular cell type, 
                        while lighter red indicates lower or non-significant expression."
                    ),
                    "ViolinPlot" = HTML(
                      "<h3>Violin Plot - ALK</h3>",
-                     "Please use the contact button for more information about the ALK data"
+                     "Violin plots were not created for the ALK data, for more information please use the contact button at the top and we are happy to discuss this."
                    )
     )
     text
