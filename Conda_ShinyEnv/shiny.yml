@@ -14,7 +14,6 @@ dependencies:
   - r-ggpubr
   - bioconductor-slingshot
   - r-viridis
-  - bioconductor-destiny
   - bioconductor-escape
   - bioconductor-ucell
   - r-gridextra
