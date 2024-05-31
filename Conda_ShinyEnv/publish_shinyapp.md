@@ -89,9 +89,11 @@ conda env remove -p /home/sarahlee/projects/SingleCell_DiffTrack/SingleCell_Diff
 ```
 
 ## R is not loading the correct version of libssl
-```Error: package or namespace load failed for ‘GenomeInfoDb’ in dyn.load(file, DLLpath = DLLpath, ...):```
-```unable to load shared object '/home/sarahlee/projects/SingleCell_DiffTrack/SingleCell_DiffTrack/lib/R/library/RCurl/libs/RCurl.so':```
-```/lib/x86_64-linux-gnu/libssl.so.3: version `OPENSSL_3.2.0' not found (required by /home/sarahlee/projects/SingleCell_DiffTrack/SingleCell_DiffTrack/lib/R/library/RCurl/libs/../../../../libcurl.so.4)Error: package ‘GenomeInfoDb’ could not be loaded```
+```
+Error: package or namespace load failed for ‘GenomeInfoDb’ in dyn.load(file, DLLpath = DLLpath, ...):
+unable to load shared object '/home/sarahlee/projects/SingleCell_DiffTrack/SingleCell_DiffTrack/lib/R/library/RCurl/libs/RCurl.so':
+/lib/x86_64-linux-gnu/libssl.so.3: version `OPENSSL_3.2.0' not found (required by /home/sarahlee/projects/SingleCell_DiffTrack/SingleCell_DiffTrack/lib/R/library/RCurl/libs/../../../../libcurl.so.4)Error: package ‘GenomeInfoDb’ could not be loaded
+```
 When this error occurs, it means R is not loading the correct version of libssl by default. To solve this you should locate the right libssl version, or install it if there is no good libssl version yet installed. When installed and located, copy the right the libcrypt* and libssl.so* files to the lib/ folder in your environment folder.
 ```
 cd SingleCell_DiffTrack/lib
