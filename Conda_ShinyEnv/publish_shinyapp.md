@@ -27,7 +27,6 @@ dependencies:
   - r-ggpubr
   - bioconductor-slingshot
   - r-viridis
-  - bioconductor-destiny
   - bioconductor-escape
   - bioconductor-ucell
   - r-gridextra
@@ -35,8 +34,8 @@ dependencies:
   - r-openxlsx
 ```
 
-## Step 3: Create a Conda environment from the YAML file
-The command uses the shiny.yml file to create a new Conda environment named shinyenv. the -f specifies the YAML file to use and -p specifies the path where the environment should be created. The environment will contain all the packages listed in shiny.yml
+## Step 3: Create a test Conda environment from the YAML file
+This step is to test if the Conda environment works in your local terminal. The command uses the shiny.yml file to create a new Conda environment named shinyenv. the -f specifies the YAML file to use and -p specifies the path where the environment should be created. The environment will contain all the packages listed in shiny.yml
 ```
 conda env create -f shiny.yml -p shinyenv
 ```
@@ -76,6 +75,7 @@ In this case the URL is https:// vesalius.ugent.be/rstudio/SingleCell_DiffTrack_
 When the app works perfectly in RStudio, you can publicate the app with following command:
 ```
 conda_shiny [--public] [--group group] [--conda conda_folder] [--shiny shiny] [--name name] activate
+conda_shiny --public --conda SingleCell_DiffTrack/SingleCell_DiffTrack --shiny SingleCell_DiffTrack --name SingleCell_DiffTrack activate
 ```
 
 
@@ -106,4 +106,11 @@ Error in Matrix.DeprecatedCoerce(cd1, cd2) :
   (converted from warning) 'as(<dsCMatrix>, "dgTMatrix")' is deprecated.
 Use 'as(as(., "generalMatrix"), "TsparseMatrix")' instead.
 See help("Deprecated") and help("Matrix-deprecated").
+```
+
+## Error making the app public
+When you get an error (for example: ```rsync: [sender] change_dir "/home/sarahlee/projects/SingleCell_DiffTrack/app.R" failed: Not a directory (20)```) when making your ShinyApp public and the output says the ShinyApp is active but it doesn't work yet, you can deactivate your app using following command:
+```
+conda_shiny --name NAME deactivate
+conda_shiny --name SingleCell_DiffTrack deactivate
 ```
