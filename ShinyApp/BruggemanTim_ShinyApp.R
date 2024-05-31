@@ -27,8 +27,6 @@ library(ggpubr, lib.loc = lib_path) # for the stat_compare_means
 library(slingshot, lib.loc = lib_path)
 # install.packages("viridis", lib = lib_path)
 library(viridis, lib.loc = lib_path)
-# BiocManager::install("destiny", lib = lib_path)
-library(destiny, lib.loc = lib_path) # for the diffusionmap
 # install.packages("escape", lib = lib_path)
 library(escape, lib.loc = lib_path)
 # install.packages("UCell", lib = lib_path)
@@ -50,6 +48,7 @@ options(bitmapType = "cairo") # specific for the HPC to make plots
 cell <- readRDS("/kyukon/data/gent/vo/000/gvo00027/PPOL/SharedData/2024_TimBruggeman/RDSObjects/CellsOfInterest_SLB.rds")
 ALK <- readRDS("/kyukon/data/gent/vo/000/gvo00027/PPOL/SharedData/2024_TimBruggeman/RDSObjects/stef_ALK_and_noALK_integrated_SLB.rds")
 DEGenes <- readRDS("/kyukon/data/gent/vo/000/gvo00027/PPOL/SharedData/2024_TimBruggeman/DEGenes.RDS")
+sce_slingshot <- readRDS("/kyukon/data/gent/vo/000/gvo00027/PPOL/SharedData/2024_TimBruggeman/ShinyApp/sce_slingshot.rds")
 #ALK_DEGenes <- readRDS("/kyukon/data/gent/vo/000/gvo00027/PPOL/SharedData/2024_TimBruggeman/DEGenes_ALK.RDS")
 
 #######################################
@@ -64,8 +63,6 @@ WT_features <- rownames(cell)
 ALK_features <- rownames(ALK)
 #allfeatures <- c(WT_features, ALK_features)
 
-## source the preparation of the pseudotime analysis
-source("Pseudotime_Calculations.R", local = TRUE)
 
 ###############
 ## Define UI ##
@@ -201,8 +198,8 @@ ui <- dashboardPage(
                        tags$h3("Pseudotime Analysis"),
                        uiOutput("pseudo_text"),
                        tags$br(),
-                       plotOutput("WT_dimplot"),
-                       plotOutput("WT_pseudoplots"))
+                       imageOutput("WT_dimplot"),
+                       plotOutput("WT_pseudoplots", width = 1250))
       )
     )
   )
@@ -586,12 +583,17 @@ server <- function(input, output, session) {
       )
   })
   
-  # Making the dimplot for the pseudotime analysis
-  Dimplot <- DimPlot(cell, reduction = "DC") + NoLegend() + ggtitle("A")
+
   # output dimplot for the pseudotime analysis
-  output$WT_dimplot <- renderPlot({
-    grid.arrange(Dimplot, SCP_SAP_PLOT, SCP_PROSAP_PLOT, ncol = 3)
-  })
+  output$WT_dimplot <- renderImage({
+    # Return a list containing the filename and other options
+    list(
+      src = "Pseudotime.png",
+      contentType = "image/png",
+      width = 1250, # adjust according to your plot size
+      height = 400
+    )
+  }, deleteFile = FALSE)
   
   # Reactive expression to generate ggplots
   ggplots <- reactive({
@@ -632,9 +634,7 @@ server <- function(input, output, session) {
   output$download_pseudo_dimplot <- downloadHandler(
     filename = function() { "Overall_PseudotimeAnalyse.png" },
     content = function(file) {
-      png(file, width = 1750, height = 750)
-      grid.arrange(Dimplot, SCP_SAP_PLOT, SCP_PROSAP_PLOT, ncol = 3)
-      dev.off()
+      file.copy("Pseudotime.png", file)
     }
   )
   
