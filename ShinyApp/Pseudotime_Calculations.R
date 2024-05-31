@@ -1,5 +1,10 @@
-### Pseudotime_Calculations.R to calculate the pseudotime and use as source for the ShinyApp ###
-################################################################################################
+### This script was used to make the pseudotime calculations for the pseudotimeanalyses png's + making new rds object with DC###
+################################################################################################################################
+
+# Load necessary libraries
+library(ggplot2)
+library(Seurat)
+library(destiny)
 
 # Loading in the data
 cell <- readRDS("/kyukon/data/gent/vo/000/gvo00027/PPOL/SharedData/2024_TimBruggeman/RDSObjects/CellsOfInterest_SLB.rds")
@@ -37,9 +42,10 @@ SCP_SAP_PLOT <- ggplot(df_sce_SCP_SAP, aes(x = DC_1, y = DC_2, color = SCP_SAP_s
   geom_point() + 
   theme_classic() + 
   scale_color_viridis() + 
-  ggtitle("Pseudotime analysis SCP to SAPs") + 
   geom_smooth(se = FALSE, method = "loess", color = "black") +
-  labs(color = "Pseudotime")
+  theme(legend.position = "none") +
+  ggtitle("B") +
+  theme(plot.title = element_text(face = "bold"))
 
 ## /3: Pseudotime from SCP to ProlifSympathoblasts
 ##################################################
@@ -52,15 +58,25 @@ SCP_pro_SAP_slingshot <- slingshot(SCP_pro_SAP, clusterLabels = "seurat_clusters
 # Make this a ggplot! 
 df_sce_SCP_pro_SAP <- as.data.frame(reducedDims(SCP_pro_SAP_slingshot)$DC)
 # Reverse the pseudotime values
-SCP_pro_SAP_slingshot$slingPseudotime_1_reverse <- max(SCP_pro_SAP_slingshot$slingPseudotime_1) - SCP_pro_SAP_slingshot$slingPseudotime_1
-
 SCP_PROSAP_PLOT <- ggplot(df_sce_SCP_pro_SAP, aes(x = DC_1, y = DC_2, color = SCP_pro_SAP_slingshot$slingPseudotime_1)) + 
   geom_point() + 
   theme_classic() + 
   scale_color_viridis() + 
-  ggtitle("Pseudotime analysis SCP to Proliferating SAPs") + 
   geom_smooth(se = FALSE, method = "loess", color = "black") +
-  theme(legend.position = "none")
+  theme(legend.position = "none") +
+  ggtitle("C") +
+  theme(plot.title = element_text(face = "bold"))
+
+# Making the dimplot for the pseudotime analysis
+Dimplot <- DimPlot(cell, reduction = "DC") + NoLegend() + ggtitle("A")
+
+
+# output dimplot + ggplots for the pseudotime analysis
+# Arrange the plots in a grid
+combined_plot <- grid.arrange(Dimplot, SCP_SAP_PLOT, SCP_PROSAP_PLOT, ncol = 3)
+
+# Save the combined plot to a PNG file
+ggsave("Pseudotime.png", combined_plot, width = 15, height = 5)
 
 
 ## /4: Pseudotime trajectorie per gene
@@ -69,3 +85,5 @@ SCP_PROSAP_PLOT <- ggplot(df_sce_SCP_pro_SAP, aes(x = DC_1, y = DC_2, color = SC
 # start from SingleCellExperiment matrix  
 sce <- as.SingleCellExperiment(cell)
 sce_slingshot <- slingshot(sce, clusterLabels = "CellType", reducedDim = "DC")
+
+
