@@ -86,4 +86,4 @@ ggsave("Pseudotime.png", combined_plot, width = 15, height = 5)
 sce <- as.SingleCellExperiment(cell)
 sce_slingshot <- slingshot(sce, clusterLabels = "CellType", reducedDim = "DC")
 
-
+saveRDS(sce_slingshot,"./sce_slingshot.rds")
