@@ -205,7 +205,7 @@ ui <- dashboardPage(
                        uiOutput("pseudo_text"),
                        tags$br(),
                        imageOutput("WT_dimplot"),
-                       plotOutput("WT_pseudoplots", width = 1250))
+                       plotOutput("WT_pseudoplots"))
       )
     )
   )
@@ -581,7 +581,7 @@ server <- function(input, output, session) {
     list(
       src = "Pseudotime.png",
       contentType = "image/png",
-      width = 1250, # adjust according to your plot size
+      width = "100%", # adjust according to your plot size
       height = 400
     )
   }, deleteFile = FALSE)
