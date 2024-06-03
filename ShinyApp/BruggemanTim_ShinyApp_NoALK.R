@@ -84,6 +84,27 @@ ui <- dashboardPage(
   ),
   # sidebarmenu
   dashboardSidebar(
+    tags$style(type = "text/css",
+               # color download button black,  text shadow first line adds light shadow below text, second line adds shadow above text
+               # linear gradient background from light to darker gray from left to right (90degrees), radial background centered at 50% horizontally, 15% vertically, starts from white at center and goes grayish at 80% of radius
+               # no repeat to ensure background gradiens is not repeated, size to larger the button and center background gradient at center of button
+               "#download_UMAP_WT, #download_GeneExp_WT, #download_violinplot_WT, #download_degenes, #download_signature, #download_pseudo_dimplot, #download_pseudo_ggplots {
+               	color: black;
+	              text-shadow: 0 1px 2px rgba(255, 255, 255, 0.8), 0 -1px 2px rgba(255, 255, 255, 0.2);
+	              background: linear-gradient(90deg,
+		              rgba(224, 227, 232, 1) 0%,
+		              rgba(192, 194, 196, 1) 100%
+	              );
+	
+	              background: radial-gradient(100% 100% at 50% 15%, 
+		              rgba(255, 255, 255, 1), 
+		              rgba(143, 149, 163, 1) 80%
+	              );
+	
+	              background-repeat: no-repeat;
+	              background-size: 110% 120%;
+	              background-position: center center;
+               }"),
     # sidebarmenu with identification of the different menu's via menuItem
     sidebarMenu(id = "sidebarid",
                 menuItem(text = "Gene Expression", tabName = "gene_exp"),
@@ -453,6 +474,7 @@ server <- function(input, output, session) {
     )
   })
   
+  
   # Reactive expression to read and process the uploaded file
   genes_from_file <- reactive({
     req(input$file)
@@ -517,6 +539,7 @@ server <- function(input, output, session) {
     output$signature_plot <- renderPlot({
       UMAPPlot(cell, group.by = "CellType") + Feature_HeaderPlot
     })
+    
     
     # downloadbutton for the signatureplot
     output$download_signature <- downloadHandler(
