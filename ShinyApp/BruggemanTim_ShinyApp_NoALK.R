@@ -323,7 +323,7 @@ server <- function(input, output, session) {
                                        vjust = 1,
                                        size = 10), 
             axis.text.y = element_text(size = 10),  
-            plot.title = element_text(size=10),
+            plot.title = element_text(size = 16, hjust = 0.5, face = "bold"),
             panel.grid.major = element_blank(),
             panel.grid.minor = element_blank(),
             panel.background = element_blank(),
@@ -493,7 +493,7 @@ server <- function(input, output, session) {
     header <- input$header
     
     # Show notification for signature score calculation
-    showNotification("Signature Score being calculated, please be patient")
+    showNotification("Signature Score being calculated, please be patient", type = "message", duration = NULL, id = "calculationNotif")
     # Run signature scoring
     DefaultAssay(cell) <- "RNA"
     u.scores <- enrichIt(obj = cell, gene.sets = signatures, groups = 2000, 
@@ -509,6 +509,9 @@ server <- function(input, output, session) {
     # Feature plot
     featureplot <- FeaturePlot(cell, features = "user_genes", cols = c("lightgrey", "#FF6600", "#FF0000"))
     Feature_HeaderPlot<- featureplot + labs(title = header)
+    
+    # Remove the calculation notification once done
+    removeNotification(id = "calculationNotif")
     
     # Render the plot with header
     output$signature_plot <- renderPlot({
