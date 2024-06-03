@@ -45,9 +45,9 @@ options(bitmapType = "cairo") # specific for the HPC to make plots
 #########################
 ## Loading in the data ##
 #########################
-cell <- readRDS("C:/Users/timbr/OneDrive/Documenten/Howest/Linux operating systems/SF/Internship/ShinyApp_NoAlk/CellsOfInterest.rds")
-DEGenes <- readRDS("C:/Users/timbr/OneDrive/Documenten/Howest/Linux operating systems/SF/Internship/ShinyApp_NoAlk/DEGenes.RDS")
-sce_slingshot <- readRDS("C:/Users/timbr/OneDrive/Documenten/Howest/Linux operating systems/SF/Internship/ShinyApp_NoAlk/sce_slingshot.rds")
+cell <- readRDS("/kyukon/data/gent/vo/000/gvo00027/PPOL/SharedData/2024_TimBruggeman/RDSObjects/CellsOfInterest_SLB.rds")
+DEGenes <- readRDS("/kyukon/data/gent/vo/000/gvo00027/PPOL/SharedData/2024_TimBruggeman/DEGenes.RDS")
+sce_slingshot <- readRDS("/kyukon/data/gent/vo/000/gvo00027/PPOL/SharedData/2024_TimBruggeman/ShinyApp/sce_slingshot.rds")
 
 #######################################
 ## variables to use in the interface ##
@@ -134,7 +134,7 @@ ui <- dashboardPage(
                                  selectizeInput(
                                    inputId = "pseudogene",
                                    label = "Choose a gene:",
-                                   choices = WT_features,
+                                   choices = NULL,
                                    selected = "SOX10"
                                  ),
                                  tags$br(),
@@ -208,16 +208,25 @@ server <- function(input, output, session) {
   }, deleteFile = FALSE)
   
   
+  # Render the UI output for gene selection
   output$genes <- renderUI({
     if (input$plot == "ViolinPlot" || input$plot == "UMAP_GeneExpression") {
       selectizeInput(
         inputId = "gene",
         label = "Choose a gene:",
-        choices = WT_features,
+        choices = NULL, # Set initial choices to NULL
         selected = "STMN2"
       )
     }
   })
+  
+  # Update the selectize input choices server-side
+  observeEvent(input$plot, {
+    if (input$plot == "ViolinPlot" || input$plot == "UMAP_GeneExpression") {
+      updateSelectizeInput(session, "gene", choices = WT_features, server = TRUE, selected = "STMN2")
+    }
+  })
+
   
   # giving choices to get a comparison of two celltypes for WT
   output$statistic_choice <- renderUI({
@@ -260,6 +269,8 @@ server <- function(input, output, session) {
       }
   })
   
+  # Update the selectize input choices server-side for genes Pseudotime
+  updateSelectizeInput(session, "pseudogene", choices = WT_features, server = TRUE, selected = "SOX10")
   
   ##############################################################################
   # WT_Data output
@@ -333,30 +344,30 @@ server <- function(input, output, session) {
   })
   
   
-  # outputting the plot based on the selected plot type
-  output$WT_diffplots <- renderPlot({
-    # give the UMAP_cluster plot
-    if (input$plot == "UMAP_Cluster") {
-      umap_plot_WT <- UMAPPlot(cell, group.by = "CellType")
-      blank_plot <- ggplot() + 
-        theme_void() + 
-        theme(
-          panel.background = element_rect(fill = "white", color = NA),
-          plot.background = element_rect(fill = "white", color = NA)
-        )
-      grid.arrange(umap_plot_WT, blank_plot, ncol = 2, widths = c(2, 1))
-    }
-    # give the UMAP_cluster + UMAP_GeneExpression plots
-    else if (input$plot == "UMAP_GeneExpression") {
-      UMAPPlot(cell, group.by = "CellType") +
-        FeaturePlot(cell, features = input$gene, cols = c("lightgrey", "#FF6600", "#FF0000"))
-    }
-    # Give the UMAP_cluster + violinplot, without the dots
-    else if (input$plot == "ViolinPlot") {
-      # give the UMAP_cluster + violinplot
-      UMAPPlot(cell, group.by = "CellType") +
-        WT_ViolinPlot()
-    }
+  # outputting the plot based on the selected plot type			
+  output$WT_diffplots <- renderPlot({			
+    # give the UMAP_cluster plot			
+    if (input$plot == "UMAP_Cluster") {			
+      umap_plot_WT <- UMAPPlot(cell, group.by = "CellType")			
+      blank_plot <- ggplot() + 			
+        theme_void() + 			
+        theme(			
+          panel.background = element_rect(fill = "white", color = NA),			
+          plot.background = element_rect(fill = "white", color = NA)			
+        )			
+      grid.arrange(umap_plot_WT, blank_plot, ncol = 2, widths = c(2, 1))			
+    }			
+    # give the UMAP_cluster + UMAP_GeneExpression plots			
+    else if (input$plot == "UMAP_GeneExpression") {			
+      UMAPPlot(cell, group.by = "CellType") +			
+        FeaturePlot(cell, features = input$gene, cols = c("lightgrey", "#FF6600", "#FF0000"))			
+    }			
+    # Give the UMAP_cluster + violinplot, without the dots			
+    else if (input$plot == "ViolinPlot") {			
+      # give the UMAP_cluster + violinplot			
+      UMAPPlot(cell, group.by = "CellType") +			
+        WT_ViolinPlot()			
+    }			
   })
   
   # Downloading the different gene expression plots for WT
@@ -607,4 +618,6 @@ server <- function(input, output, session) {
 
 
 #########################
-## 
+## Run the application ##
+#########################
+shinyApp(ui = ui, server = server)
