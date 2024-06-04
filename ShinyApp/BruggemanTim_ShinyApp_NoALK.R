@@ -336,7 +336,9 @@ server <- function(input, output, session) {
   # Reactive expression to create the violin plot
   WT_ViolinPlot <- reactive({
     req(input$gene, input$comparison1, input$comparison2)  # Ensure inputs are available
-    plot <- VlnPlot(object = cell, 
+    # Reorder the cell type factor levels
+    cell$CellType <- factor(cell$CellType, levels = c("SCP", "Bridging cells", "CPC", "Sympathoblasts", "ProlifSympathoblasts"))
+    plot <- VlnPlot(object = cell,
                     features = input$gene, pt.size=0) +
       theme_classic() + 
       theme(axis.text.x = element_text(angle = 45, 
@@ -352,7 +354,6 @@ server <- function(input, output, session) {
             legend.position="none",
             axis.title.x = element_blank(),
             axis.title.y = element_blank())
-    
     # Calculate the maximum y-value of the violin plot
     max_y <- max(ggplot_build(plot)$data[[1]]$ymax)
     
@@ -368,7 +369,7 @@ server <- function(input, output, session) {
   # outputting the plot based on the selected plot type			
   output$WT_diffplots <- renderPlot({			
     # give the UMAP_cluster plot			
-    if (input$plot == "UMAP_Cluster") {			
+    if (input$plot == "UMAP_Cluster") {
       umap_plot_WT <- UMAPPlot(cell, group.by = "CellType")			
       blank_plot <- ggplot() + 			
         theme_void() + 			
@@ -379,17 +380,19 @@ server <- function(input, output, session) {
       grid.arrange(umap_plot_WT, blank_plot, ncol = 2, widths = c(2, 1))			
     }			
     # give the UMAP_cluster + UMAP_GeneExpression plots			
-    else if (input$plot == "UMAP_GeneExpression") {			
+    else if (input$plot == "UMAP_GeneExpression") {	
       UMAPPlot(cell, group.by = "CellType") +			
-        FeaturePlot(cell, features = input$gene, cols = c("lightgrey", "#FF6600", "#FF0000"))			
-    }			
+        FeaturePlot(cell, features = input$gene, cols = c("lightgrey", "#FF6600", "#FF0000"), min.cutoff = 0, max.cutoff = 2)		
+    }	
     # Give the UMAP_cluster + violinplot, without the dots			
-    else if (input$plot == "ViolinPlot") {			
+    else if (input$plot == "ViolinPlot") {
       # give the UMAP_cluster + violinplot			
       UMAPPlot(cell, group.by = "CellType") +			
-        WT_ViolinPlot()			
+        WT_ViolinPlot() + scale_x_discrete(limits=c("SCP", "Bridging Cells", "CPC", "Sympathoblasts", "ProlifSympathoblasts"))		
     }			
   })
+  
+  p + scale_x_discrete(limits=c("0.5", "2"))
   
   # Downloading the different gene expression plots for WT
   output$download_UMAP_WT <- downloadHandler(
@@ -485,10 +488,6 @@ server <- function(input, output, session) {
     }
     df <- read.table(input$file$datapath, header = TRUE)
     gene_column <- which(!is.na(df[[1]]))  # Assuming gene names are in the first column
-    if (length(gene_column) == 0) {
-      showNotification("The uploaded file does not contain gene names", type = "warning")
-      return(NULL)
-    }
     trimws(df[[1]])  # Trim leading and trailing whitespace
   })
   
@@ -503,8 +502,8 @@ server <- function(input, output, session) {
     }
     
     # Check if genes are found
-    if (is.null(genes) || length(genes) == 0) {
-      showNotification("No genes found", type = "warning")
+    if (length(genes) < 5) {
+      showNotification("Please input 5 or more genes", type = "warning")
       return(NULL)
     }
     
