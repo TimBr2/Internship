@@ -367,8 +367,6 @@ server <- function(input, output, session) {
                               label.y = max_y - 1)  # Adjust the value to position the label
   })
   
-
-  
   # outputting the plot based on the selected plot type			
   output$WT_diffplots <- renderPlot({			
     # give the UMAP_cluster plot			
@@ -383,9 +381,10 @@ server <- function(input, output, session) {
       grid.arrange(umap_plot_WT, blank_plot, ncol = 2, widths = c(2, 1))			
     }			
     # give the UMAP_cluster + UMAP_GeneExpression plots			
-    else if (input$plot == "UMAP_GeneExpression") {	
+    else if (input$plot == "UMAP_GeneExpression") {
+      featureplot <- FeaturePlot(cell, features = input$gene) + scale_color_gradientn(colors = c("lightgray", "gray", "#FF6600", "#FF3300", "#FF0000"))
       UMAPPlot(cell, group.by = "CellType") +			
-        FeaturePlot(cell, features = input$gene, cols = c("lightgrey", "#FF6600", "#FF0000"))		
+        featureplot
     }	
     # Give the UMAP_cluster + violinplot, without the dots			
     else if (input$plot == "ViolinPlot") {
@@ -394,6 +393,7 @@ server <- function(input, output, session) {
         WT_ViolinPlot()
     }			
   })
+ 
   
   # Downloading the different gene expression plots for WT
   output$download_UMAP_WT <- downloadHandler(
@@ -529,7 +529,7 @@ server <- function(input, output, session) {
     reset("file")
     
     # Feature plot
-    featureplot <- FeaturePlot(cell, features = "user_genes", cols = c("lightgrey", "#FF6600", "#FF0000"))
+    featureplot <- FeaturePlot(cell, features = "user_genes") + scale_color_gradientn(colors = c("lightgray", "gray", "#FF6600", "#FF3300", "#FF0000"))
     Feature_HeaderPlot<- featureplot + labs(title = header)
     
     # Remove the calculation notification once done
