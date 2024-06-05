@@ -33,6 +33,8 @@ library(escape, lib.loc = lib_path)
 library(UCell, lib.loc = lib_path) # for the signature score
 # install.packages("gridExtra", lib = lib_path)
 library(gridExtra, lib.loc = lib_path)
+# install.packages("grid", lib = lib_path)
+library(grid)
 # install.packages("shinyjs", lib = lib_path)
 library(shinyjs, lib.loc = lib_path) # to reset input file for signaturetab
 # install.packages("openxlsx", lib = lib_path)
@@ -364,10 +366,8 @@ server <- function(input, output, session) {
                               label = "p.signif", 
                               label.y = max_y - 1)  # Adjust the value to position the label
   })
-print(cell$CellType)
   
-  # Plot using FeaturePlot with appropriate color scales
-  FeaturePlot(cell, features = gene, cols = c("lightgrey", "#FF6600", "#FF0000"))
+
   
   # outputting the plot based on the selected plot type			
   output$WT_diffplots <- renderPlot({			
@@ -586,6 +586,20 @@ print(cell$CellType)
     )
   }, deleteFile = FALSE)
   
+  # Function to create the combined plots with a title in the left corner
+  combined_plots_with_title <- function(ggplot1, ggplot2, title_text) {
+    # Create the title on the left side
+    title <- textGrob(title_text, gp = gpar(fontsize = 16, fontface = "bold"), x = unit(10, "mm"), just = "left")
+    
+    # Arrange the title and the plots
+    grid.arrange(
+      title,                          # Title
+      arrangeGrob(ggplot1, ggplot2, ncol = 2),  # Plots in a row
+      nrow = 2,                                 # Arrange title above the plots
+      heights = c(0.5,10)                     # Adjust the heights as needed
+    )
+  }
+  
   # Reactive expression to generate ggplots
   ggplots <- reactive({
     req(input$pseudogene)  # Ensure input$pseudogene is available
@@ -612,8 +626,8 @@ print(cell$CellType)
       ggtitle("From SCP to ProlifSympathoblasts") +
       theme(plot.title = element_text(face = "bold"))
     
-    # Arrange the plots next to each other
-    grid.arrange(ggplot1, ggplot2, ncol = 2)
+    # Combine the plots with a title in the left corner
+    combined_plots_with_title(ggplot1, ggplot2, "C")
   })
   
   # Output pseudoplots
