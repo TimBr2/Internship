@@ -64,7 +64,6 @@ SCP_PROSAP_PLOT <- ggplot(df_sce_SCP_pro_SAP, aes(x = DC_1, y = DC_2, color = SC
   scale_color_viridis() + 
   geom_smooth(se = FALSE, method = "loess", color = "black") +
   theme(legend.position = "none") +
-  ggtitle("B") +
   theme(plot.title = element_text(face = "bold"))
 
 # Making the dimplot for the pseudotime analysis
