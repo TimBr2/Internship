@@ -145,7 +145,7 @@ ui <- dashboardPage(
                 conditionalPanel("input.sidebarid == 'score'",
                                  fileInput("file", "Upload text file", accept = c(".txt")),
                                  textInput("genes", "Enter gene names (separated by comma and at least 5 genes)"),
-                                 textInput("header", "Enter you plot title here:"),
+                                 textInput("header", "Enter you plot title here"),
                                  actionButton("calculate", "Calculate Signature Score"),
                                  tags$br(),
                                  div(style = "text-align: center;",
@@ -499,18 +499,17 @@ server <- function(input, output, session) {
     gene_column <- which(!is.na(df[[1]]))  # Assuming gene names are in the first column
     trimws(df[[1]])  # Trim leading and trailing whitespace
   })
-
+  
   observeEvent(input$calculate, {
     # Check if genes are provided either by text input or file upload
     genes <- NULL
-    if (!is.null(input$genes)) {
-      genes <- input$genes
+    if (input$genes != "") {
       genes <- strsplit(input$genes, ",")[[1]]
       genes <- trimws(genes)  # Trim leading and trailing whitespace
     } else if (!is.null(input$file)) {
       genes <- genes_from_file()
     }
-
+    
     # Check if genes are found
     if (length(genes) < 5) {
       showNotification("Please input 5 or more genes", type = "warning")
@@ -522,14 +521,13 @@ server <- function(input, output, session) {
     
     # Get header input
     header <- input$header
-
+    
     # Show notification for signature score calculation
     showNotification("Signature Score being calculated, please be patient", type = "message", duration = NULL, id = "calculationNotif")
     # Run signature scoring
     DefaultAssay(cell) <- "RNA"
-    tryCatch({u.scores <- enrichIt(obj = cell, gene.sets = signatures, groups = 2000, 
+    u.scores <- enrichIt(obj = cell, gene.sets = signatures, groups = 2000, 
                          cores = 1, method = "UCell")
-    })
     
     # Add scores to Seurat object
     u.scores <- as.data.frame(u.scores)
@@ -539,7 +537,7 @@ server <- function(input, output, session) {
     reset("file")
     
     # Feature plot
-    featureplot <- FeaturePlot(cell, features = "user_genes") + scale_color_gradientn(colors = c("lightgray", "gray", "#FF7700", "#FF3300", "#FF0000"))
+    featureplot <- FeaturePlot(cell, features = "user_genes") + scale_color_gradientn(colors = c("lightgray", "gray", "#FF6600", "#FF3300", "#FF0000"))
     Feature_HeaderPlot<- featureplot + labs(title = header)
     
     # Remove the calculation notification once done
