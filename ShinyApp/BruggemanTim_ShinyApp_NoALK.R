@@ -251,6 +251,7 @@ server <- function(input, output, session) {
   
   # giving choices to get a comparison of two celltypes for WT
   output$statistic_choice <- renderUI({
+    cell$CellType <- factor(cell$CellType, levels = c("SCP", "Bridging Cells", "CPC", "Sympathoblasts", "ProlifSympathoblasts"))
     if (input$plot == "ViolinPlot") {
         tags$div( # put in div to get both selectinputs in here
           tags$div(
@@ -261,7 +262,7 @@ server <- function(input, output, session) {
             inputId = "comparison1",
             label = "choose first comparison",
             choices = levels(cell$CellType),
-            selected = "Sympathoblasts"
+            selected = "SCP"
           ),
           tags$div(
             HTML("VS"),
@@ -271,7 +272,7 @@ server <- function(input, output, session) {
             inputId = "comparison2",
             label = "Choose second comparison",
             choices = levels(cell$CellType),
-            selected = "Sympathoblasts"
+            selected = "SCP"
           )
       )
     }
@@ -336,15 +337,16 @@ server <- function(input, output, session) {
   # Reactive expression to create the violin plot
   WT_ViolinPlot <- reactive({
     req(input$gene, input$comparison1, input$comparison2)  # Ensure inputs are available
-    # Reorder the cell type factor levels
-    cell$CellType <- factor(cell$CellType, levels = c("SCP", "Bridging cells", "CPC", "Sympathoblasts", "ProlifSympathoblasts"))
+    # changing the order of the violinplot x data
+    cell$CellType <- factor(cell$CellType, levels = c("SCP", "Bridging Cells", "CPC", "Sympathoblasts", "ProlifSympathoblasts"))
     plot <- VlnPlot(object = cell,
-                    features = input$gene, pt.size=0) +
+                    features = input$gene, pt.size=0, fill = factor(cell$CellType)) +
       theme_classic() + 
+      scale_x_discrete(limits = c("SCP", "Bridging Cells", "CPC", "Sympathoblasts", "ProlifSympathoblasts")) +
       theme(axis.text.x = element_text(angle = 45, 
                                        hjust = 1, 
                                        vjust = 1,
-                                       size = 10), 
+                                       size = 15), 
             axis.text.y = element_text(size = 10),  
             plot.title = element_text(size = 16, hjust = 0.5, face = "bold"),
             panel.grid.major = element_blank(),
@@ -361,10 +363,11 @@ server <- function(input, output, session) {
     plot + stat_compare_means(comparisons = list(c(input$comparison1, input$comparison2)), 
                               label = "p.signif", 
                               label.y = max_y - 1)  # Adjust the value to position the label
-    # place for the statistic calculation output
-    #stat_compare_means(label.y = 1.5)
   })
+print(cell$CellType)
   
+  # Plot using FeaturePlot with appropriate color scales
+  FeaturePlot(cell, features = gene, cols = c("lightgrey", "#FF6600", "#FF0000"))
   
   # outputting the plot based on the selected plot type			
   output$WT_diffplots <- renderPlot({			
@@ -382,17 +385,15 @@ server <- function(input, output, session) {
     # give the UMAP_cluster + UMAP_GeneExpression plots			
     else if (input$plot == "UMAP_GeneExpression") {	
       UMAPPlot(cell, group.by = "CellType") +			
-        FeaturePlot(cell, features = input$gene, cols = c("lightgrey", "#FF6600", "#FF0000"), min.cutoff = 0, max.cutoff = 2)		
+        FeaturePlot(cell, features = input$gene, cols = c("lightgrey", "#FF6600", "#FF0000"))		
     }	
     # Give the UMAP_cluster + violinplot, without the dots			
     else if (input$plot == "ViolinPlot") {
-      # give the UMAP_cluster + violinplot			
+      # give the UMAP_cluster + violinplot
       UMAPPlot(cell, group.by = "CellType") +			
-        WT_ViolinPlot() + scale_x_discrete(limits=c("SCP", "Bridging Cells", "CPC", "Sympathoblasts", "ProlifSympathoblasts"))		
+        WT_ViolinPlot()
     }			
   })
-  
-  p + scale_x_discrete(limits=c("0.5", "2"))
   
   # Downloading the different gene expression plots for WT
   output$download_UMAP_WT <- downloadHandler(
