@@ -357,7 +357,7 @@ server <- function(input, output, session) {
             axis.line = element_line(colour = "black"),
             legend.position="none",
             axis.title.x = element_blank(),
-            axis.title.y = element_blank())
+            axis.title.y = element_text())
     # Calculate the maximum y-value of the violin plot
     max_y <- max(ggplot_build(plot)$data[[1]]$ymax)
     
