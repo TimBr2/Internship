@@ -218,8 +218,8 @@ ui <- dashboardPage(
 ## Define server logic ##
 #########################
 server <- function(input, output, session) {
-  # General output
-  ################
+  # General output : UI
+  #####################
   # Putting the logo in the dashbordheader
   output$logo <- renderImage({
     list(
@@ -296,9 +296,13 @@ server <- function(input, output, session) {
   # Update the selectize input choices server-side for genes Pseudotime
   updateSelectizeInput(session, "pseudogene", choices = WT_features, server = TRUE, selected = "SOX10")
   
+  
   ##############################################################################
   # WT_Data output
   ################
+  
+  # 1\ Gene Expression tab
+  ########################
   # making a text box above the plots from the first tab for WT
   output$WT_plottext <- renderUI({
     text <- switch(input$plot,
@@ -326,11 +330,10 @@ server <- function(input, output, session) {
                      "<strong>What does it show:</strong> The expression of a gene of interest in each cell type (population).<br>",
                      "<strong>Legend:</strong> The width of each violin represents the density of cells that express a particular gene at different expression levels.
                      Wider sections indicate a higher cell density at these expression levels.<br>",
-                     "Statistics is based on the t test. The t-test compares the mean expression levels of a gene between two groups of cells.
-                     The statistics are visualised using a line between different cell types. Above this line there is 'ns' or '*'.
-                     If the line connecting two cell types is labeled with 'ns', it indicates that there is no significant statistical difference in gene expression 
-                     levels between those cell types. On the other hand, if the line is labeled with '*', it indicates a significant statistical difference. 
-                     The number of '*' symbols corresponds to the level of significance, with more stars suggesting a higher level of statistical difference."
+                     "Statistics is based on the Wilcoxon rank sum test. This test compares the mean expression levels of a gene between two groups of cells.
+                     The statistics are visualised using a line between different cell types. Above the line there is a number representing the p-value. This number is different when changing the comparisons.
+                     If the line connecting two cell types has a p-value bigger than 0.05, it indicates that there is no significant statistical difference in gene expression
+                     levels between those cell types. On the other hand, if the p-value is smaller than 0.05, it indicates a significant statistical difference."
                    )
     )
     text
@@ -361,10 +364,10 @@ server <- function(input, output, session) {
     # Calculate the maximum y-value of the violin plot
     max_y <- max(ggplot_build(plot)$data[[1]]$ymax)
     
-    # Add stat_compare_means at the top of the plot
+    # Add stat_compare_means at the top of the plot with Wilcoxon rank sum test
     plot + stat_compare_means(comparisons = list(c(input$comparison1, input$comparison2)), 
-                              label = "p.signif", 
-                              label.y = max_y - 1)  # Adjust the value to position the label
+                              label.y = max_y - 0.5,  # Adjust the value to position the label
+                              method = "wilcox.test")  # Use Wilcoxon rank sum test
   })
   
   # outputting the plot based on the selected plot type			
@@ -382,7 +385,7 @@ server <- function(input, output, session) {
     }			
     # give the UMAP_cluster + UMAP_GeneExpression plots			
     else if (input$plot == "UMAP_GeneExpression") {
-      featureplot <- FeaturePlot(cell, features = input$gene) + scale_color_gradientn(colors = c("lightgray", "gray", "#FF6600", "#FF3300", "#FF0000"))
+      featureplot <- FeaturePlot(cell, features = input$gene) + scale_color_gradientn(colors = c("lightgray", "gray", "#FF7700", "#FF3300", "#FF0000"))
       UMAPPlot(cell, group.by = "CellType") +			
         featureplot
     }	
@@ -422,6 +425,8 @@ server <- function(input, output, session) {
   )
   
   
+  # 2\ DE Genes tab
+  #################
   # making a textbox above the datatable
   output$Datatable_text <- renderUI({
     HTML("<strong>Title:</strong> Differential gene expression analysis.<br>",
@@ -468,6 +473,9 @@ server <- function(input, output, session) {
     }
   )
   
+  
+  # 3\ Signature Score tab
+  ########################
   # making text for the signatureplot tab
   output$signature_text <- renderUI({
     HTML("<strong>Title:</strong> UMAP showing the signature score of the gene set in the populations of interest.<br>",
@@ -491,17 +499,18 @@ server <- function(input, output, session) {
     gene_column <- which(!is.na(df[[1]]))  # Assuming gene names are in the first column
     trimws(df[[1]])  # Trim leading and trailing whitespace
   })
-  
+
   observeEvent(input$calculate, {
     # Check if genes are provided either by text input or file upload
     genes <- NULL
-    if (input$genes != "") {
+    if (!is.null(input$genes)) {
+      genes <- input$genes
       genes <- strsplit(input$genes, ",")[[1]]
       genes <- trimws(genes)  # Trim leading and trailing whitespace
     } else if (!is.null(input$file)) {
       genes <- genes_from_file()
     }
-    
+
     # Check if genes are found
     if (length(genes) < 5) {
       showNotification("Please input 5 or more genes", type = "warning")
@@ -513,13 +522,14 @@ server <- function(input, output, session) {
     
     # Get header input
     header <- input$header
-    
+
     # Show notification for signature score calculation
     showNotification("Signature Score being calculated, please be patient", type = "message", duration = NULL, id = "calculationNotif")
     # Run signature scoring
     DefaultAssay(cell) <- "RNA"
-    u.scores <- enrichIt(obj = cell, gene.sets = signatures, groups = 2000, 
+    tryCatch({u.scores <- enrichIt(obj = cell, gene.sets = signatures, groups = 2000, 
                          cores = 1, method = "UCell")
+    })
     
     # Add scores to Seurat object
     u.scores <- as.data.frame(u.scores)
@@ -529,7 +539,7 @@ server <- function(input, output, session) {
     reset("file")
     
     # Feature plot
-    featureplot <- FeaturePlot(cell, features = "user_genes") + scale_color_gradientn(colors = c("lightgray", "gray", "#FF6600", "#FF3300", "#FF0000"))
+    featureplot <- FeaturePlot(cell, features = "user_genes") + scale_color_gradientn(colors = c("lightgray", "gray", "#FF7700", "#FF3300", "#FF0000"))
     Feature_HeaderPlot<- featureplot + labs(title = header)
     
     # Remove the calculation notification once done
@@ -559,6 +569,9 @@ server <- function(input, output, session) {
     )
   })
   
+  
+  # 4\ Pseudotime analyse tab
+  ###########################
   # making information text for the pseudoanalysis tab
   output$pseudo_text <- renderUI({
     HTML(
@@ -651,7 +664,6 @@ server <- function(input, output, session) {
       ggsave(file, plot = ggplots, device = "png", width = 12, height = 6)  # Adjust width and height as needed, here specified in inches, not pixels
     }
   )
-  
   
   
 }
