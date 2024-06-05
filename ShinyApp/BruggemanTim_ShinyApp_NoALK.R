@@ -4,41 +4,40 @@
 ######################
 ## Packages to load ##
 ######################
-# making a library to store my packages in with path
-lib_path <- "/user/gent/476/vsc47620/R/x86_64-pc-linux-gnu-library/4.2"
+
 
 # install.packages("shiny",lib = lib_path)
-library(shiny, lib.loc = lib_path)
+library(shiny)
 # install.packages("Seurat", lib = lib_path)
-library(Seurat, lib.loc = lib_path)
+library(Seurat)
 # install.packages("bslib", lib = lib_path)
-library(bslib, lib.loc = lib_path)
+library(bslib)
 # install.packages("shinydashboard", lib = lib_path)
-library(shinydashboard, lib.loc = lib_path)
+library(shinydashboard)
 # install.packages("DT", lib = lib_path)
-library(DT, lib.loc = lib_path)
+library(DT)
 # install.packages("dplyr", lib = lib_path)
-library(dplyr, lib.loc = lib_path)
+library(dplyr)
 # install.packages("ggplot2", lib = lib_path)
-library(ggplot2, lib.loc = lib_path)
+library(ggplot2)
 # install.packages("ggpubr", lib = lib_path)
-library(ggpubr, lib.loc = lib_path) # for the stat_compare_means
+library(ggpubr) # for the stat_compare_means
 # BiocManager::install("slingshot", lib = lib_path)
-library(slingshot, lib.loc = lib_path)
+library(slingshot)
 # install.packages("viridis", lib = lib_path)
-library(viridis, lib.loc = lib_path)
+library(viridis)
 # BiocManager::install("escape", lib = lib_path)
-library(escape, lib.loc = lib_path)
+library(escape)
 # install.packages("UCell", lib = lib_path)
-library(UCell, lib.loc = lib_path) # for the signature score
+library(UCell) # for the signature score
 # install.packages("gridExtra", lib = lib_path)
-library(gridExtra, lib.loc = lib_path)
+library(gridExtra)
 # install.packages("grid", lib = lib_path)
 library(grid)
 # install.packages("shinyjs", lib = lib_path)
-library(shinyjs, lib.loc = lib_path) # to reset input file for signaturetab
+library(shinyjs) # to reset input file for signaturetab
 # install.packages("openxlsx", lib = lib_path)
-library(openxlsx, lib.loc = lib_path)
+library(openxlsx)
 
 
 options(bitmapType = "cairo") # specific for the HPC to make plots
@@ -47,9 +46,9 @@ options(bitmapType = "cairo") # specific for the HPC to make plots
 #########################
 ## Loading in the data ##
 #########################
-cell <- readRDS("/kyukon/data/gent/vo/000/gvo00027/PPOL/SharedData/2024_TimBruggeman/RDSObjects/CellsOfInterest_SLB.rds")
-DEGenes <- readRDS("/kyukon/data/gent/vo/000/gvo00027/PPOL/SharedData/2024_TimBruggeman/DEGenes.RDS")
-sce_slingshot <- readRDS("/kyukon/data/gent/vo/000/gvo00027/PPOL/SharedData/2024_TimBruggeman/ShinyApp/sce_slingshot.rds")
+cell <- readRDS("./CellsOfInterest_SLB.rds")
+DEGenes <- readRDS("./DEGenes.RDS")
+sce_slingshot <- readRDS("./sce_slingshot.rds")
 
 #######################################
 ## variables to use in the interface ##
