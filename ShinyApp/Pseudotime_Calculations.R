@@ -1,16 +1,31 @@
 ### This script was used to make the pseudotime calculations for the pseudotimeanalyses png's + making new rds object with DC###
 ################################################################################################################################
 
-# Load necessary libraries
-library(ggplot2)
-library(Seurat)
-library(destiny)
+# making a library to store my packages in with path
+lib_path <- "/user/gent/476/vsc47620/R/x86_64-pc-linux-gnu-library/4.2"
 
-# Loading in the data
+## Load necessary libraries ##
+##############################
+# install.packages("ggplot2", lib = lib_path) - v3.5.1
+library(ggplot2, lib.loc = lib_path)
+# install.packages("Seurat", lib = lib_path) - v5.1.0
+library(Seurat, lib.loc = lib_path)
+# BiocManager::install("destiny", lib = lib_path) - v3.10.0
+library(destiny, lib.loc = lib_path)
+# BiocManager::install("slingshot", lib = lib_path) - v2.4.0
+library(slingshot, lib.loc = lib_path)
+# install.packages("viridis", lib = lib_path) - v0.6.5
+library(viridis, lib.loc = lib_path)
+# install.packages("gridExtra", lib = lib_path) - v2.3
+library(gridExtra, lib.loc = lib_path)
+
+## Loading in the data ##
+#########################
 cell <- readRDS("/kyukon/data/gent/vo/000/gvo00027/PPOL/SharedData/2024_TimBruggeman/RDSObjects/CellsOfInterest_SLB.rds")
 
 
-## preparation of the pseudotime analysis
+## /1: preparation of the pseudotime analysis ##
+############################################
 # make a matrix
 set.seed(1) # otherwise the plot is turned left to right
 sce0 <- as.SingleCellExperiment(cell)
