@@ -212,7 +212,7 @@ ui <- dashboardPage(
 #########################
 server <- function(input, output, session) {
   # General output : UI
-  #####################
+  ##############################################################################
   # Putting the logo in the dashbordheader
   output$logo <- renderImage({
     list(
@@ -335,12 +335,11 @@ server <- function(input, output, session) {
   # Reactive expression to create the violin plot
   WT_ViolinPlot <- reactive({
     req(input$gene, input$comparison1, input$comparison2)  # Ensure inputs are available
-    # changing the order of the violinplot x data
-    cell$CellType <- factor(cell$CellType, levels = c("SCP", "Bridging Cells", "CPC", "Sympathoblasts", "ProlifSympathoblasts"))
+    # Defining the violinplot
     plot <- VlnPlot(object = cell,
-                    features = input$gene, pt.size=0, fill = factor(cell$CellType)) +
+                    features = input$gene, pt.size=0) +
       theme_classic() + 
-      scale_x_discrete(limits = c("SCP", "Bridging Cells", "CPC", "Sympathoblasts", "ProlifSympathoblasts")) +
+      scale_x_discrete(limits = c("SCP", "Bridging Cells", "CPC", "Sympathoblasts", "ProlifSympathoblasts")) + # changing the order of the violinplot x data
       theme(axis.text.x = element_text(angle = 45, 
                                        hjust = 1, 
                                        vjust = 1,
@@ -378,6 +377,7 @@ server <- function(input, output, session) {
     }			
     # give the UMAP_cluster + UMAP_GeneExpression plots			
     else if (input$plot == "UMAP_GeneExpression") {
+      req(input$gene)
       featureplot <- FeaturePlot(cell, features = input$gene) + scale_color_gradientn(colors = c("lightgray", "gray", "#FF7700", "#FF3300", "#FF0000"))
       UMAPPlot(cell, group.by = "CellType") +			
         featureplot
@@ -479,11 +479,10 @@ server <- function(input, output, session) {
     )
   })
   
-  
   # Reactive expression to read and process the uploaded file
   genes_from_file <- reactive({
     req(input$file)
-    file_ext <- tools::file_ext(input$file$name)
+    file_ext <- tools::file_ext(input$file$name) # tools is a basepackage in R so doesn't need install but just loaded with library or like this tools:: (- v4.2.1)
     if (file_ext != "txt") {
       showNotification("Please upload a text file with .txt extension", type = "warning")
       return(NULL)
@@ -585,7 +584,7 @@ server <- function(input, output, session) {
     list(
       src = "Pseudotime.png",
       contentType = "image/png",
-      width = "100%", # adjust according to your plot size
+      width = "100%",
       height = 400
     )
   }, deleteFile = FALSE)
@@ -597,7 +596,7 @@ server <- function(input, output, session) {
     
     # Arrange the title and the plots
     grid.arrange(
-      title,                          # Title
+      title,                          
       arrangeGrob(ggplot1, ggplot2, ncol = 2),  # Plots in a row
       nrow = 2,                                 # Arrange title above the plots
       heights = c(0.5,10)                     # Adjust the heights as needed
