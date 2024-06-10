@@ -4,7 +4,7 @@ The goal of the internship is to do a shiny app development fo single cell RNAse
 This repository contains the source code and documentation of the SingleCell DiffTrack ShinyApp for the Wild Type single cell RNAseq data from the publication: https://www.sciencedirect.com/science/article/pii/S2589004223021739
 
 ## Exercises
-To get familiar with ShinyApp development, working with single cell RNA seq data and publishing the app, i did tutorials on https://shiny.posit.co/, https://satijalab.org/seurat/, https://www.appsilon.com/post/r-shiny-docker-getting-started and https://rpubs.com/LoanRobinson/shiny_python. All different folder for the exercises can be found under the folder Exercises.
+To get familiar with ShinyApp development, working with single cell RNA seq data and publishing the app, i did tutorials on https://shiny.posit.co/, https://satijalab.org/seurat/, https://www.appsilon.com/post/r-shiny-docker-getting-started and https://rpubs.com/LoanRobinson/shiny_python. All different folders for the exercises can be found under the folder Exercises.
 
 ## ShinyApp
 In the ShinyApp folder, two ShinyApp scripts can be found, one with ALK data (BruggemanTim_ShinyApp.R) and one without ALK data (BruggemanTim_ShinyApp_NoALK.R). The image made from the SupportScripts/Pseudotime_Calclations.R can also be found in this folder. This image is saved as Pseudotime.png. Also the logo of the lab can be found here, the PPOL_Handjes.png.
