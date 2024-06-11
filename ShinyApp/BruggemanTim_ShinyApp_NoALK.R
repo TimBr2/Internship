@@ -59,12 +59,12 @@ WT_features <- rownames(cell)
 ###############
 ui <- dashboardPage(
   # headerbar
-  dashboardHeader(title = 'ShinyApp',
+  dashboardHeader(title = 'SingleCell DiffTrack',
                   # add icon with paper link
                   tags$li(class ="dropdown",
                           tags$a(href = "https://www.sciencedirect.com/science/article/pii/S2589004223021739",
                                  icon("file"),
-                                 "Paper"
+                                 "Publication"
                           )
                   ),
                   # Add icon with email link
@@ -108,8 +108,8 @@ ui <- dashboardPage(
                                  selectInput(
                                    inputId = "plot",
                                    label = "Choose a plot:",
-                                   choices = c("UMAP_Cluster", "UMAP_GeneExpression", "ViolinPlot"),
-                                   selected = "UMAP_Cluster"
+                                   choices = c("UMAP Cluster", "UMAP Gene Expression", "ViolinPlot"),
+                                   selected = "UMAP Cluster"
                                  ),
                                  uiOutput("genes"),
                                  tags$br(),
@@ -136,7 +136,7 @@ ui <- dashboardPage(
                 useShinyjs(),  # Initialize shinyjs
                 menuItem("Signature Score", tabName = "score"),
                 conditionalPanel("input.sidebarid == 'score'",
-                                 fileInput("file", "Upload text file", accept = c(".txt")),
+                                 fileInput("file", "Upload text file (all genes in one column)", accept = c(".txt")),
                                  textInput("genes", "Enter gene names (separated by comma and at least 5 genes)"),
                                  textInput("header", "Enter you plot title here"),
                                  actionButton("calculate", "Calculate Signature Score"),
@@ -145,7 +145,7 @@ ui <- dashboardPage(
                                      downloadButton("download_signature","Download"))
                 ),
                 # fourth menuItem
-                menuItem("Pseudotime analyse", tabName = "pseudo"),
+                menuItem("Pseudotime Analysis", tabName = "pseudo"),
                 conditionalPanel("input.sidebarid == 'pseudo'",
                                  selectizeInput(
                                    inputId = "pseudogene",
@@ -226,7 +226,7 @@ server <- function(input, output, session) {
   
   # Render the UI output for gene selection
   output$genes <- renderUI({
-    if (input$plot == "ViolinPlot" || input$plot == "UMAP_GeneExpression") {
+    if (input$plot == "ViolinPlot" || input$plot == "UMAP Gene Expression") {
       selectizeInput(
         inputId = "gene",
         label = "Choose a gene:",
@@ -238,7 +238,7 @@ server <- function(input, output, session) {
   
   # Update the selectize input choices server-side
   observeEvent(input$plot, {
-    if (input$plot == "ViolinPlot" || input$plot == "UMAP_GeneExpression") {
+    if (input$plot == "ViolinPlot" || input$plot == "UMAP Gene Expression") {
       updateSelectizeInput(session, "gene", choices = WT_features, server = TRUE, selected = "STMN2")
     }
   })
@@ -275,10 +275,10 @@ server <- function(input, output, session) {
   
   # Download buttons for the plots per tab per plot
   output$download_per_plot <- renderUI({
-    if (input$plot == "UMAP_Cluster") {
+    if (input$plot == "UMAP Cluster") {
         downloadButton("download_UMAP_WT", "Download UMAP")
       }
-    else if (input$plot == "UMAP_GeneExpression") {
+    else if (input$plot == "UMAP Gene Expression") {
         downloadButton("download_GeneExp_WT", "Download GeneExpression")
       }
     else if (input$plot == "ViolinPlot") {
@@ -299,7 +299,7 @@ server <- function(input, output, session) {
   # making a text box above the plots from the first tab for WT
   output$WT_plottext <- renderUI({
     text <- switch(input$plot,
-                   "UMAP_Cluster" = HTML(
+                   "UMAP Cluster" = HTML(
                      "<h3>UMAP Cluster - Wild Type</h3>",
                      "<strong>Title:</strong> UMAP showing the different populations of interest.<br>",
                      "<strong>What does it show:</strong> A UMAP (Uniform Manifold Approximation and Projection) 
@@ -310,7 +310,7 @@ server <- function(input, output, session) {
                      specific units but capture the structure and relationships within the data. Groupings of dots that are
                      close to each other represent similar data points, indicating potential clusters or subgroups within the dataset."
                    ),
-                   "UMAP_GeneExpression" = HTML(
+                   "UMAP Gene Expression" = HTML(
                      "<h3>UMAP Gene Expression - Wild Type</h3>",
                      "<strong>Title:</strong> UMAP showing the expression of a gene in the populations of interest.<br>",
                      "<strong>What does is show:</strong> The expression of a gene of interest in each single cell in the data.<br>",
@@ -365,7 +365,7 @@ server <- function(input, output, session) {
   # outputting the plot based on the selected plot type			
   output$WT_diffplots <- renderPlot({			
     # give the UMAP_cluster plot			
-    if (input$plot == "UMAP_Cluster") {
+    if (input$plot == "UMAP Cluster") {
       umap_plot_WT <- UMAPPlot(cell, group.by = "CellType")			
       blank_plot <- ggplot() + 			
         theme_void() + 			
@@ -376,7 +376,7 @@ server <- function(input, output, session) {
       grid.arrange(umap_plot_WT, blank_plot, ncol = 2, widths = c(2, 1))			
     }			
     # give the UMAP_cluster + UMAP_GeneExpression plots			
-    else if (input$plot == "UMAP_GeneExpression") {
+    else if (input$plot == "UMAP Gene Expression") {
       req(input$gene)
       featureplot <- FeaturePlot(cell, features = input$gene) + scale_color_gradientn(colors = c("lightgray", "gray", "#FF7700", "#FF3300", "#FF0000"))
       UMAPPlot(cell, group.by = "CellType") +			
@@ -393,7 +393,7 @@ server <- function(input, output, session) {
   
   # Downloading the different gene expression plots for WT
   output$download_UMAP_WT <- downloadHandler(
-    filename = function() {"UMAP_WT.png"},
+    filename = function() {"UMAP.png"},
     content = function(file) {
       png(file, width = 1250, height = 750)
       print(UMAPPlot(cell, group.by = "CellType"))
@@ -401,7 +401,7 @@ server <- function(input, output, session) {
     }
   )
   output$download_GeneExp_WT <- downloadHandler(
-    filename = function() {paste(input$gene, "GeneExpression_WT.png", sep = "_")},
+    filename = function() {paste(input$gene, "GeneExpression.png", sep = "_")},
     content = function(file) {
       png(file, width = 1250, height = 750)
       print(FeaturePlot(cell, features = input$gene, cols = c("lightgrey", "#FF6600", "#FF0000")))
