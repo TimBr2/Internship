@@ -80,10 +80,8 @@ ui <- dashboardPage(
   # sidebarmenu
   dashboardSidebar(
     tags$style(type = "text/css",
-               # color download button black,  text shadow first line adds light shadow below text, second line adds shadow above text
-               # linear gradient background from light to darker gray from left to right (90degrees), radial background centered at 50% horizontally, 15% vertically, starts from white at center and goes grayish at 80% of radius
-               # no repeat to ensure background gradiens is not repeated, size to larger the button and center background gradient at center of button
-               "#download_UMAP_WT, #download_GeneExp_WT, #download_violinplot_WT, #download_degenes, #download_signature, #download_pseudo_dimplot, #download_pseudo_ggplots {
+               "#download_UMAP_WT, #download_GeneExp_WT, #download_violinplot_WT, #download_degenes, 
+               #download_signature, #download_pseudo_dimplot, #download_pseudo_ggplots {
                	color: black;
 	              text-shadow: 0 1px 2px rgba(255, 255, 255, 0.8), 0 -1px 2px rgba(255, 255, 255, 0.2);
 	              background: linear-gradient(90deg,
